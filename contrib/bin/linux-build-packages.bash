@@ -57,6 +57,17 @@ load_signing_key() {
 }
 
 main() {
+  local simple_ui=""
+  local positional=()
+  for arg in "$@"; do
+    case "$arg" in
+      --simple-ui) simple_ui="--simple-ui" ;;
+      --test|--dirty) positional+=("$arg") ;;
+      *) die "unknown arg $arg (expected --test, --dirty, --simple-ui)" ;;
+    esac
+  done
+  set -- "${positional[@]}"
+
   local version
   version="$(cat "$(nix build '.#version' --no-link --print-out-paths)")"
   version="${version/.1-/.$(date +%s)-}"
@@ -97,7 +108,7 @@ main() {
   arches=(x86_64)
 
   for target_arch in "${arches[@]}"; do
-    ./contrib/bin/linux-build-binaries.bash --release --locked --target_arch "$target_arch"
+    ./contrib/bin/linux-build-binaries.bash --release --locked --target_arch "$target_arch" $simple_ui
   done
 
   for package_format in deb rpm arch; do

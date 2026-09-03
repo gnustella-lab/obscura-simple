@@ -4,12 +4,13 @@ set -eux
 source contrib/shell/source-die.bash
 
 main() {
-  local release='' target_arch='' locked=''
+  local release='' target_arch='' locked='' simple_ui=''
   while [ "$#" -gt 0 ]; do
     case "$1" in
       --release) release='--release'; shift ;;
       --locked) locked='--locked'; shift ;;
       --target_arch) target_arch="$2"; shift 2 ;;
+      --simple-ui) simple_ui='1'; shift ;;
       *) die "linux-build-binaries: unexpected argument '$1'" ;;
     esac
   done
@@ -25,7 +26,11 @@ main() {
   local obscura_version
   obscura_version="$(cat "$(nix build '.#version' --no-link --print-out-paths)")"
   local gresources
-  gresources="$(nix build '.#gui-gresources' --no-link --print-out-paths)"
+  if [ -n "$simple_ui" ]; then
+    gresources="$(nix build '.#gui-gresources-simple' --no-link --print-out-paths)"
+  else
+    gresources="$(nix build '.#gui-gresources' --no-link --print-out-paths)"
+  fi
 
   mkdir -p "result-linux/target-${target_arch}" result-linux/cargo
 

@@ -41,24 +41,57 @@ WEBKIT_DISABLE_SANDBOX_THIS_IS_DANGEROUS=1 ./run-gui-native.sh
 WEBKIT_DISABLE_SANDBOX_THIS_IS_DANGEROUS=1 /usr/bin/obscura-gui
 ```
 
-## Debian Package
+## Debian Package (ready-to-use)
 
-A complete `.deb` with the simple UI is built via:
+A complete `.deb` with the simple UI, service auto-enabled and auto-started:
 
 ```bash
-# Release binaries
-OBSCURA_GRESOURCES_DIR=/tmp/obscura-gresources cargo build --release --locked --bin obscura
-OBSCURA_GRESOURCES_DIR=/tmp/obscura-gresources cargo build --release --features gui --bin obscura-gui
+# One command: builds gresources + release binaries + stages a proper Debian package
+./contrib/bin/build-simple-deb.bash
+# or: ./simple-ui/build-deb.sh
+# outputs: ./obscura-simple_1.177-1_amd64.deb
 
-# Then dpkg-deb (see /tmp/deb-build for staging)
-dpkg-deb --build /tmp/deb-build/staging ./obscura-simple_1.177-1_amd64.deb
 sudo apt install ./obscura-simple_1.177-1_amd64.deb
+systemctl status obscura.service   # -> active (running)
+sudo obscura add-operator $USER    # add yourself to obscura group
+newgrp obscura                     # or logout/login
+obscura status
+WEBKIT_DISABLE_SANDBOX_THIS_IS_DANGEROUS=1 obscura-gui
 ```
 
-Package `obscura-simple` (24M) contains:
+Manual equivalent (same as the script):
+
+```bash
+mkdir -p /tmp/obscura-gresources-simple
+glib-compile-resources --sourcedir=rustlib/src/gui --target=/tmp/obscura-gresources-simple/icons.gresource rustlib/src/gui/icons.gresource.xml
+python3 rustlib/gen-gresource-xml.py simple-ui /tmp/webui.generated.xml
+glib-compile-resources --target=/tmp/obscura-gresources-simple/webui.gresource /tmp/webui.generated.xml
+OBSCURA_VERSION=v1.177 OBSCURA_GRESOURCES_DIR=/tmp/obscura-gresources-simple cargo build --release --locked --bin obscura
+OBSCURA_VERSION=v1.177 OBSCURA_GRESOURCES_DIR=/tmp/obscura-gresources-simple cargo build --release --features gui --bin obscura-gui
+# then staging + dpkg-deb via the script above
+```
+
+Package `obscura-simple` (~24M) contains (ready-to-use):
 - `usr/bin/obscura` + `usr/bin/obscura-gui` (release, simple UI)
-- `usr/lib/systemd/system/obscura.service`
+- `usr/lib/systemd/system/obscura.service` + `usr/lib/systemd/system-preset/80-obscura.preset` (auto-enable via `systemctl preset`)
+- `usr/lib/sysusers.d/obscura.conf` (creates `obscura` group)
 - `usr/share/applications/net.obscura.vpn.gui.desktop`, icons, metainfo, apparmor
+- `DEBIAN/postinst` that does `systemd-sysusers`, `daemon-reload`, `preset/enable` and `start` on fresh install, plus `prerm/postrm` handling
+
+Official repo packages (`obscura-cli`/`obscura-gui` via `linux/deb`) are also fixed: `linux/deb/rules:5` now installs preset and `dh_installsystemd` enables+starts, so `apt install obscura` from the signed repo is similarly ready-to-use. Build them with simple UI via `contrib/bin/linux-build-binaries.bash --simple-ui --release --locked && ./contrib/bin/linux-build-packages.bash --test` (requires nix + docker).
+
+## Troubleshooting `Service unavailable / unitActivating`
+
+If the GUI shows `Service starting... unitActivating` after `apt install`:
+
+```bash
+systemctl status obscura.service   # should be active; if activating/failed, check journal
+journalctl -u obscura.service -n 100 --no-pager
+ls -l /run/obscura.sock            # 770, group obscura
+id -nG $USER | tr ' ' '\n' | grep obscura || echo "not in group -> sudo obscura add-operator $USER && newgrp obscura"
+```
+
+Common causes fixed by the new packages: missing `obscura` group (`sysusers`), not enabled (`preset`), not started (`postinst`), stale sockets (`rm -f /run/obscura.sock` when no service running).
 
 ## Differences from React UI
 

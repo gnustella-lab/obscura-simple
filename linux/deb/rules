@@ -5,6 +5,7 @@
 override_dh_auto_install:
 	install -Dm755 obscura debian/obscura-cli/usr/bin/obscura
 	install -Dm644 /repo/linux/common/obscura.service debian/obscura-cli/usr/lib/systemd/system/obscura.service
+	install -Dm644 /repo/linux/common/obscura-preset.conf debian/obscura-cli/usr/lib/systemd/system-preset/80-obscura.preset
 	install -Dm755 obscura-gui debian/obscura-gui/usr/bin/obscura-gui
 	install -Dm644 /repo/linux/common/net.obscura.vpn.gui.desktop debian/obscura-gui/usr/share/applications/net.obscura.vpn.gui.desktop
 	install -Dm644 /repo/linux/common/net.obscura.vpn.gui.metainfo.xml debian/obscura-gui/usr/share/metainfo/net.obscura.vpn.gui.metainfo.xml
@@ -17,4 +18,9 @@ override_dh_auto_install:
 
 override_dh_install:
 	dh_apparmor --profile-name=obscura-gui -pobscura-gui
+
+override_dh_installsysusers:
 	dh_installsysusers -pobscura-cli
+
+override_dh_installsystemd:
+	dh_installsystemd -pobscura-cli

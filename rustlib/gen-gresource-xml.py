@@ -12,6 +12,9 @@ def main(webui_out_path, outpath: Path):
     generated_files = []
     for dirpath, _, filenames in webui_out_path.walk(on_error=print):
         for filename in filenames:
+            # Skip build helpers that shouldn't be shipped in the web UI gresource
+            if filename.endswith(".sh") or filename.endswith(".bash"):
+                continue
             generated_files.append(dirpath / filename)
 
     root = ET.Element("gresources")

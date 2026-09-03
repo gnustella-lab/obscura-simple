@@ -142,10 +142,41 @@
             runHook postInstall
           '';
         };
+        gui-gresources-simple = pkgs.stdenv.mkDerivation {
+          name = "gui-gresources-simple";
+          src = lib.fileset.toSource {
+            root = ./.;
+            fileset = lib.fileset.unions [
+              ./rustlib/gen-gresource-xml.py
+              ./rustlib/src/gui/icons.gresource.xml
+              ./rustlib/src/gui/icons
+              ./simple-ui
+            ];
+          };
+          nativeBuildInputs = with pkgs; [ glib libxml2 python3 ];
+          buildPhase = ''
+            runHook preBuild
+            glib-compile-resources --sourcedir=rustlib/src/gui --target=icons.gresource rustlib/src/gui/icons.gresource.xml
+            python3 rustlib/gen-gresource-xml.py simple-ui webui.generated.xml
+            glib-compile-resources --target=webui.gresource webui.generated.xml
+            runHook postBuild
+          '';
+          installPhase = ''
+            runHook preInstall
+            mkdir -p "$out"
+            cp icons.gresource webui.gresource "$out"/
+            runHook postInstall
+          '';
+        };
         rust-gui-bin = craneLib.buildPackage (rustArgsNative-gui // {
           meta.mainProgram = "obscura-gui";
           OBSCURA_VERSION = version;
           OBSCURA_GRESOURCES_DIR = "${gui-gresources}";
+        });
+        rust-gui-bin-simple = craneLib.buildPackage (rustArgsNative-gui // {
+          meta.mainProgram = "obscura-gui";
+          OBSCURA_VERSION = version;
+          OBSCURA_GRESOURCES_DIR = "${gui-gresources-simple}";
         });
 
         xtask = craneLib.buildPackage {
@@ -357,10 +388,14 @@
             touch $out
           '';
         } // lib.optionalAttrs pkgs.stdenv.isLinux {
-          inherit rust-cli-bin rust-gui-bin;
+          inherit rust-cli-bin rust-gui-bin rust-gui-bin-simple gui-gresources-simple;
           clippy-gui = craneLib.cargoClippy (rustArgsNative-gui // {
             cargoClippyExtraArgs = "-- -Dwarnings";
             OBSCURA_GRESOURCES_DIR = "${gui-gresources}";
+          });
+          clippy-gui-simple = craneLib.cargoClippy (rustArgsNative-gui // {
+            cargoClippyExtraArgs = "-- -Dwarnings";
+            OBSCURA_GRESOURCES_DIR = "${gui-gresources-simple}";
           });
         } // {
           clippy = craneLib.cargoClippy (rustArgs // { cargoClippyExtraArgs = "--all-targets -- -Dwarnings"; });
@@ -475,12 +510,17 @@
             packages = [ pkgs.just pkgs.python3 ];
             OBSCURA_GRESOURCES_DIR = "${gui-gresources}";
           };
+          gui-simple = pkgs.mkShell {
+            inputsFrom = [ rust-gui-bin-simple ];
+            packages = [ pkgs.just pkgs.python3 ];
+            OBSCURA_GRESOURCES_DIR = "${gui-gresources-simple}";
+          };
         };
 
         packages = {
-          inherit apks-foss apks-play aab-play-debug aab-play-release gui-gresources hash licenses licenses-node
+          inherit apks-foss apks-play aab-play-debug aab-play-release gui-gresources gui-gresources-simple hash licenses licenses-node
             licenses-rust rust web-android web-ios web-linux web-macos;
           version = pkgs.writeText "version.txt" version;
-        } // lib.optionalAttrs pkgs.stdenv.isLinux { inherit rust-cli-bin rust-gui-bin; };
+        } // lib.optionalAttrs pkgs.stdenv.isLinux { inherit rust-cli-bin rust-gui-bin rust-gui-bin-simple; };
       });
 }

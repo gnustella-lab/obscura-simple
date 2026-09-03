@@ -87,14 +87,24 @@ produces, `result-linux/dist-prod/{deb,rpm,arch}`, at `https://linux-pkgs.obscur
 Pass `--test` to build instead with the committed keys in `linux/signing_keys_test/`.
 Pass `--dirty` to build production packages from an untagged or modified tree.
 
-For a quick local `.deb` with the simple UI (without Docker/signing):
+For a quick local `.deb` with the simple UI (without Docker/signing, ready-to-use):
 
 ```bash
-# Build release binaries with simple UI gresources
-OBSCURA_GRESOURCES_DIR=/tmp/obscura-gresources cargo build --release --locked --bin obscura
-OBSCURA_GRESOURCES_DIR=/tmp/obscura-gresources cargo build --release --features gui --bin obscura-gui
-# See /tmp/deb-build for staging example; dpkg-deb --build → obscura-simple_1.177-1_amd64.deb
+./contrib/bin/build-simple-deb.bash              # builds -> ./obscura-simple_1.177-1_amd64.deb
+# or manually:
+mkdir -p /tmp/obscura-gresources-simple
+glib-compile-resources --sourcedir=rustlib/src/gui --target=/tmp/obscura-gresources-simple/icons.gresource rustlib/src/gui/icons.gresource.xml
+python3 rustlib/gen-gresource-xml.py simple-ui /tmp/webui.generated.xml
+glib-compile-resources --target=/tmp/obscura-gresources-simple/webui.gresource /tmp/webui.generated.xml
+OBSCURA_GRESOURCES_DIR=/tmp/obscura-gresources-simple cargo build --release --locked --bin obscura
+OBSCURA_GRESOURCES_DIR=/tmp/obscura-gresources-simple cargo build --release --features gui --bin obscura-gui
+# then the script stages DEBIAN/control+postinst (sysusers, preset, enable, start) and runs dpkg-deb
+sudo apt install ./obscura-simple_1.177-1_amd64.deb
+systemctl status obscura.service
+sudo obscura add-operator $USER && newgrp obscura
 ```
+
+The official split packages (`obscura-cli`/`obscura-gui`) are also ready-to-use: `linux/deb/rules:5` now installs `obscura-preset.conf:1` and runs `dh_installsystemd:22`, so `systemctl preset` + `start` happen in `postinst`. To build them with the simple UI via Nix: `contrib/bin/linux-build-binaries.bash --simple-ui --release --locked`.
 
 ### Signing key rotation
 

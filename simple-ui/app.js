@@ -61,7 +61,7 @@ function render(){
     let msg="Service degraded"; let detail=JSON.stringify(deg);
     if(typeof deg==="string"){
       if(deg==="unitInactive") msg="Service inactive";
-      else if(deg==="unitActivating") msg="Service starting...";
+      else if(deg==="unitActivating"){ msg="Service starting..."; detail=`${JSON.stringify(deg)} — if stuck >30s, service is crash-looping. Run: journalctl -u obscura.service -n 50 --no-pager (common: missing libtss2-tctildr0t64)`; }
       else if(deg==="unitNotInstalled") msg="Service not installed";
       else if(deg==="unknown") msg="Unknown error";
     } else if(deg.socketPermissionDenied){
@@ -222,7 +222,17 @@ document.addEventListener("DOMContentLoaded", ()=>{
   $("#nav").addEventListener("click", e=>{ const btn=e.target.closest(".nav-btn"); if(btn) { location.hash=btn.dataset.view; render(); } });
   window.addEventListener("hashchange", render);
   $("#btnMinHelp").onclick=()=>{ location.hash="help"; render(); };
-  $("#btnRestartService").onclick=async()=>{ try{ await invoke('restartService',{enable:true}); toast("Restarting..."); }catch(e){ toast(e.message); } };
+  $("#btnRestartService").onclick=async()=>{
+    try{ await invoke('restartService',{enable:true}); toast("Restart requested, waiting for service..."); }
+    catch(e){
+      const raw = e.message || String(e);
+      let hint = raw;
+      if(raw.includes("serviceEnableAndRestartFailed")) hint = "Enable+restart failed (auth dismissed? pkexec missing?). Try in terminal: sudo systemctl enable --now obscura.service";
+      else if(raw.includes("serviceStartTimeout")) hint = "Service did not become active in 10s — likely crash-loop. Run: journalctl -u obscura.service -n 50 --no-pager";
+      else if(raw.includes("serviceStartFailed")) hint = "Service entered failed state. Run: journalctl -u obscura.service -n 50 --no-pager";
+      toast(hint, 6000);
+    }
+  };
   $("#btnAddOperator").onclick=async()=>{ try{ await invoke('linuxAddOperator'); toast("Permission added, restart app"); }catch(e){ toast(e.message); } };
   const accInput=$("#accountInput");
   accInput.addEventListener("input", ()=>{

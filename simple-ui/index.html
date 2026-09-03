@@ -51,6 +51,7 @@
           <button id="btnAddOperator" class="btn">Add permission</button>
         </div>
         <p class="muted small" id="degradedDetail"></p>
+        <p class="muted small" id="degradedHint">If stuck on "Service starting..." for more than ~30s, the service is likely crash-looping. Check: <code>journalctl -u obscura.service -n 50 --no-pager</code> — common cause is a missing <code>libtss2-tctildr0t64</code> (<code>sudo apt install libtss2-tctildr0t64</code>).</p>
       </div>
     </section>
 

@@ -63,6 +63,7 @@ function describe(degradation: LinuxServiceDegradation): Degraded {
       return {
         titleKey: 'linuxService-unitActivatingTitle',
         messageKey: 'linuxService-unitActivatingMessage',
+        terminalCommand: `journalctl -u ${UNIT_NAME} -n 50 --no-pager`,
       };
     case 'unitNotInstalled':
       return {

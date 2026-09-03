@@ -40,7 +40,7 @@ else
 fi
 VERSION="${VERSION#v}"
 VERSION="${VERSION%%-*}"
-DEB_VERSION="${VERSION}-1"
+DEB_VERSION="${VERSION}-2"
 if [ -z "$OUT" ]; then
   OUT="$REPO_ROOT/obscura-simple_${DEB_VERSION}_${ARCH}.deb"
 fi
@@ -120,7 +120,7 @@ Section: net
 Priority: optional
 Architecture: ${ARCH}
 Maintainer: Obscura Repository Signer <packages@obscura.com>
-Depends: libc6 (>= 2.39), passwd, util-linux-extra, libtss2-tcti-device0t64, desktop-file-utils, libgtk-4-1, libadwaita-1-0, libwebkitgtk-6.0-4, libsoup-3.0-0
+Depends: libc6 (>= 2.39), passwd, util-linux-extra, libtss2-esys-3.0.2-0t64, libtss2-mu-4.0.1-0t64, libtss2-sys1t64, libtss2-tctildr0t64, libtss2-tcti-device0t64, desktop-file-utils, libgtk-4-1, libadwaita-1-0, libwebkitgtk-6.0-4, libsoup-3.0-0
 Description: Obscura VPN (simple UI, ready-to-use)
  Privacy that's more than a promise.
  Single package with CLI + GUI (simple HTML UI), service and preset.

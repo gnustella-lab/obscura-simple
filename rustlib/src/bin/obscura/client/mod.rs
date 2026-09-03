@@ -121,6 +121,11 @@ async fn login(args: ClientLoginArgs) -> Result<(), ClientError> {
     if account.is_empty() {
         return Err(ClientError::MalformedAccountId);
     }
+    // Normalize like the UI: strip non-digits (dashes, spaces) – API expects 20 digits
+    let account = account.chars().filter(|c| c.is_ascii_digit()).collect::<String>();
+    if account.is_empty() {
+        return Err(ClientError::MalformedAccountId);
+    }
     let _: () = run_command(ManagerCmd::Login { account_id: AccountId::from_string_unchecked(account), validate: !args.offline }).await??;
     if !args.offline {
         eprintln!("successfully logged in");

@@ -1,0 +1,262 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Obscura VPN</title>
+<link rel="stylesheet" href="./style.css" />
+</head>
+<body>
+<div id="app">
+  <!-- Header -->
+  <header class="topbar">
+    <div class="brand">
+      <svg width="28" height="28" viewBox="0 0 24 24" fill="none"><path d="M12 2L3 7v10l9 5 9-5V7L12 2z" fill="#ff6b35" stroke="#ff6b35" stroke-width="1.2"/><path d="M12 12a3 3 0 100-6 3 3 0 000 6zM9 16c1.5 1 3.5 1 6 0" stroke="white" stroke-width="1.3" stroke-linecap="round"/></svg>
+      <span class="brand-name">Obscura VPN</span>
+      <span class="brand-version" id="appVersion"></span>
+    </div>
+    <div class="topbar-actions">
+      <button id="btnMinHelp" class="icon-btn" title="Help">?</button>
+    </div>
+  </header>
+
+  <!-- Navigation -->
+  <nav class="nav" id="nav">
+    <button data-view="connection" class="nav-btn active">Connection</button>
+    <button data-view="location" class="nav-btn">Location</button>
+    <button data-view="account" class="nav-btn">Account</button>
+    <button data-view="settings" class="nav-btn">Settings</button>
+    <button data-view="help" class="nav-btn">Help</button>
+    <button data-view="about" class="nav-btn">About</button>
+  </nav>
+
+  <!-- Main -->
+  <main class="main">
+    <!-- Splash / Loading -->
+    <section id="view-splash" class="view">
+      <div class="center">
+        <div class="loader"></div>
+        <p>Loading...</p>
+        <p class="muted" id="splashDetail">Connecting to service</p>
+      </div>
+    </section>
+
+    <!-- Degraded -->
+    <section id="view-degraded" class="view hidden">
+      <div class="card warning">
+        <h3>Service unavailable</h3>
+        <p id="degradedMsg">Obscura service is not running.</p>
+        <div class="row gap">
+          <button id="btnRestartService" class="btn primary">Restart service</button>
+          <button id="btnAddOperator" class="btn">Add permission</button>
+        </div>
+        <p class="muted small" id="degradedDetail"></p>
+      </div>
+    </section>
+
+    <!-- Login -->
+    <section id="view-login" class="view hidden">
+      <div class="login-layout">
+        <div class="login-card card">
+          <h2 id="loginTitle">Welcome to Obscura</h2>
+          <p class="muted" id="loginSubtitle">Create an account or sign in with your existing number.</p>
+
+          <div id="loginCreateBox">
+            <button id="btnCreateAccount" class="btn primary large full">Create account</button>
+            <p class="or">— or —</p>
+          </div>
+
+          <div class="field">
+            <label for="accountInput">Account number</label>
+            <input id="accountInput" type="text" placeholder="XXXX - XXXX - XXXX - XXXX - XXXX" autocomplete="off" spellcheck="false" />
+            <p class="field-hint small muted" id="accountHint">Enter the 20 digits (with or without dashes)</p>
+            <p class="field-error small" id="accountError"></p>
+          </div>
+          <button id="btnLogin" class="btn primary full">Sign in</button>
+          <p class="small muted" id="loginStatus"></p>
+
+          <div id="loginGeneratedBox" class="hidden">
+            <div class="generated-number" id="generatedNumber"></div>
+            <div class="row gap">
+              <button id="btnCopyGenerated" class="btn">Copy</button>
+              <a id="payLink" class="btn primary" target="_blank" rel="noopener">Continue to payment</a>
+            </div>
+            <button id="btnDoneGenerated" class="btn ghost small">I've paid / Continue</button>
+            <button id="btnWantExisting" class="btn ghost small muted">I already have an account</button>
+          </div>
+        </div>
+        <p class="small muted center">By creating, you agree to the terms at <a href="https://obscura.com/legal" target="_blank">obscura.com/legal</a></p>
+      </div>
+    </section>
+
+    <!-- Connection -->
+    <section id="view-connection" class="view hidden">
+      <div class="stack">
+        <div class="hero card">
+          <div class="hero-mascot" id="heroMascot">🛡️</div>
+          <h2 id="connTitle">Disconnected</h2>
+          <p class="muted" id="connSubtitle">Connect to browse privately</p>
+          <div class="progress-track" id="progressTrack">
+            <div class="progress-step"><span class="dot"></span> Your device</div>
+            <div class="progress-line"></div>
+            <div class="progress-step"><span class="dot"></span> Obscura</div>
+            <div class="progress-line"></div>
+            <div class="progress-step"><span class="dot"></span> Relay</div>
+            <div class="progress-line"></div>
+            <div class="progress-step"><span class="dot"></span> Internet</div>
+          </div>
+          <div class="row center gap" id="connActions">
+            <button id="btnQuickConnect" class="btn primary large">Quick connect ⚡</button>
+            <button id="btnCancelConnect" class="btn hidden">Cancel</button>
+            <button id="btnDisconnect" class="btn danger hidden">Disconnect</button>
+          </div>
+        </div>
+
+        <div class="card">
+          <h3>Location</h3>
+          <div class="row gap">
+            <select id="citySelect" class="select flex-1"></select>
+            <button id="btnConnectCity" class="btn primary">Connect</button>
+            <button id="btnDisconnectCity" class="btn hidden">Disconnect</button>
+          </div>
+          <p class="small muted" id="cityHint"></p>
+          <p class="small"><a href="https://obscura.com/check" target="_blank">Check my connection →</a></p>
+        </div>
+
+        <div class="card" id="sessionCard" style="display:none">
+          <h4>Current session</h4>
+          <p class="small muted" id="sessionInfo"></p>
+        </div>
+      </div>
+    </section>
+
+    <!-- Location -->
+    <section id="view-location" class="view hidden">
+      <div class="stack">
+        <div class="card">
+          <h3 id="locationTitle">Choose location</h3>
+          <input id="locationSearch" type="search" placeholder="Search city or country..." />
+          <div class="row gap small muted" id="locationStats"></div>
+        </div>
+        <div id="locationList" class="stack"></div>
+      </div>
+    </section>
+
+    <!-- Account -->
+    <section id="view-account" class="view hidden">
+      <div class="stack">
+        <div class="card" id="accountStatusCard"></div>
+        <div class="card">
+          <h3>Account number</h3>
+          <div class="row gap">
+            <code id="accountNumberDisplay" class="mono flex-1">••••</code>
+            <button id="btnToggleAccount" class="btn small">Show</button>
+            <button id="btnCopyAccount" class="btn small">Copy</button>
+          </div>
+          <div class="row gap" style="margin-top:12px">
+            <button id="btnLogout" class="btn">Log out</button>
+            <button id="btnDeleteAccount" class="btn danger">Delete account</button>
+          </div>
+        </div>
+        <div class="card">
+          <h3>Settings</h3>
+          <a id="manageTunnelsLink" href="#" target="_blank" class="btn ghost">Manage WireGuard configurations →</a>
+        </div>
+      </div>
+    </section>
+
+    <!-- Settings -->
+    <section id="view-settings" class="view hidden">
+      <div class="stack">
+        <div class="card">
+          <h3>General</h3>
+          <label class="switch"><input type="checkbox" id="toggleAutoConnect" /> <span>Auto-connect</span></label>
+          <label class="switch"><input type="checkbox" id="toggleLoginItem" /> <span>Open at startup</span></label>
+          <label class="switch"><input type="checkbox" id="toggleLocalNetwork" /> <span>Local network access</span></label>
+          <button id="btnRotateKey" class="btn small">Rotate WireGuard key</button>
+        </div>
+        <div class="card">
+          <h3>DNS</h3>
+          <div class="row gap">
+            <label class="radio"><input type="radio" name="dnsMode" value="obscura" checked /> Obscura</label>
+            <label class="radio"><input type="radio" name="dnsMode" value="system" /> System</label>
+          </div>
+          <div class="grid2" id="dnsBlockGrid">
+            <label class="checkbox"><input type="checkbox" data-dns="ad" /> Ads</label>
+            <label class="checkbox"><input type="checkbox" data-dns="tracker" /> Trackers</label>
+            <label class="checkbox"><input type="checkbox" data-dns="malware" /> Malware</label>
+            <label class="checkbox"><input type="checkbox" data-dns="adult" /> Adult</label>
+            <label class="checkbox"><input type="checkbox" data-dns="gambling" /> Gambling</label>
+            <label class="checkbox"><input type="checkbox" data-dns="socialMedia" /> Social media</label>
+          </div>
+        </div>
+        <div class="card">
+          <h3>Appearance</h3>
+          <div class="row gap">
+            <button data-scheme="auto" class="btn small scheme-btn">Auto</button>
+            <button data-scheme="light" class="btn small scheme-btn">Light</button>
+            <button data-scheme="dark" class="btn small scheme-btn">Dark</button>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Help -->
+    <section id="view-help" class="view hidden">
+      <div class="stack">
+        <div class="card">
+          <h3>Need help?</h3>
+          <p>Send an email to <a href="mailto:support@obscura.net">support@obscura.net</a></p>
+          <div class="field">
+            <label for="feedbackInput">Describe the problem (for debug bundle)</label>
+            <textarea id="feedbackInput" rows="3" placeholder="What happened?"></textarea>
+          </div>
+          <button id="btnDebugBundle" class="btn primary">Generate debug bundle</button>
+          <p class="small muted" id="debugPath"></p>
+          <button id="btnRevealDebug" class="btn small hidden">Show file</button>
+        </div>
+      </div>
+    </section>
+
+    <!-- About -->
+    <section id="view-about" class="view hidden">
+      <div class="stack">
+        <div class="card center">
+          <div style="font-size:48px">🛡️</div>
+          <h2>Obscura VPN</h2>
+          <p class="muted" id="aboutVersion">v1.177</p>
+          <p class="small muted">© Sovereign Engineering Inc.</p>
+          <div class="row center gap">
+            <a href="https://obscura.com" target="_blank" class="btn small">Visit website</a>
+            <button id="btnLicenses" class="btn small ghost">Licenses</button>
+          </div>
+          <p class="small muted" id="clickHint">click 5x on version for developer mode</p>
+        </div>
+        <div class="card" id="licensesCard" style="display:none">
+          <h3>Licenses</h3>
+          <p class="small muted">Open-source components used.</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- Developer -->
+    <section id="view-developer" class="view hidden">
+      <div class="stack">
+        <div class="card">
+          <h3>Developer</h3>
+          <pre id="devOsStatus" class="mono small" style="max-height:240px;overflow:auto"></pre>
+          <pre id="devAppStatus" class="mono small" style="max-height:240px;overflow:auto"></pre>
+          <div class="row gap">
+            <button id="btnResetDefaults" class="btn small danger">Reset</button>
+            <button id="btnRestartApp" class="btn small">Restart app</button>
+          </div>
+        </div>
+      </div>
+    </section>
+  </div>
+</div>
+
+<div id="toast" class="toast hidden"></div>
+<script type="module" src="./app.js"></script>
+</body>
+</html>

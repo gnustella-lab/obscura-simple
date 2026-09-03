@@ -1,6 +1,14 @@
 # Obscura VPN Client
 
-Obscura VPN library, CLI client, and App
+> **Fork Notice — I forgot to fork before starting**
+>
+> This repository at `gnustella-lab/obscura-simple` is a **fork** of [`Sovereign-Engineering/obscuravpn-client`](https://github.com/Sovereign-Engineering/obscuravpn-client).
+> I started developing (simple HTML GUI, English wrappers, `.deb` packaging) directly on a clone and forgot to click **Fork** on GitHub first.
+> The commit history is preserved from the upstream `main` (`v1.177`) and all new work is on top of it. The upstream remains the canonical source; this fork exists to host the simple UI and installable package. If you are looking for the official client, go to the upstream link above.
+
+Obscura VPN library, CLI client, and App — **simple HTML GUI edition** (see [`SIMPLE_UI.md`](SIMPLE_UI.md))
+
+> **Language:** This fork is maintained **totally in English**. The original upstream is also English; the simple UI (`simple-ui/`) and helper scripts (`run-*.sh`) were translated from Portuguese and are now English-only.
 
 ## Support
 

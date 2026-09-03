@@ -1,9 +1,0 @@
-#include "Base.xcconfig"
-
-CODE_SIGN_IDENTITY = Developer ID Application: Sovereign Engineering Inc. (5G943LR562)
-CODE_SIGN_STYLE = Manual
-
-ENABLE_HARDENED_RUNTIME = YES
-
-OBSCURA_PACKET_TUNNEL_PROVIDER_ENTITLEMENT = packet-tunnel-provider-systemextension
-OBSCURA_PACKET_TUNNEL_PROVIDER_ENTITLEMENT[sdk=iphoneos*] = packet-tunnel-provider

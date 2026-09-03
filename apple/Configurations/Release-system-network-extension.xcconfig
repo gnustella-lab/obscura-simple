@@ -1,4 +1,0 @@
-#include "Release.xcconfig"
-#include "system-network-extension.xcconfig"
-
-PROVISIONING_PROFILE_SPECIFIER = Developer ID: System Network Extension

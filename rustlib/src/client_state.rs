@@ -119,6 +119,7 @@ impl ClientState {
                 DnsConfig::System => true,
             },
             local_network_access: self.config.local_network_access.is_enabled(),
+            kill_switch: self.config.feature_flags.kill_switch.unwrap_or(false),
         }
     }
 

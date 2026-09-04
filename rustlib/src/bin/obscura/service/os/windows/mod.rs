@@ -89,7 +89,7 @@ impl Os for WindowsOsImpl {
         result
     }
 
-    async fn unset_os_network_config(&self) -> Result<(), ()> {
+    async fn unset_os_network_config(&self, _kill_switch: bool, _local_network_access: bool) -> Result<(), ()> {
         tracing::info!(message_id = "fPjdNl3o", "manager called unset_tunnel_network_config");
         self.tun.shutdown().await
     }

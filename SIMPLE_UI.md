@@ -51,9 +51,9 @@ A complete `.deb` with the simple UI, service auto-enabled and auto-started:
 # One command: builds gresources + release binaries + stages a proper Debian package
 ./contrib/bin/build-simple-deb.bash
 # or: ./simple-ui/build-deb.sh
-# outputs: ./obscura-simple_1.177-6_amd64.deb
+# outputs: ./obscura-simple_1.177-7_amd64.deb
 
-sudo apt install ./obscura-simple_1.177-6_amd64.deb
+sudo apt install ./obscura-simple_1.177-7_amd64.deb
 systemctl status obscura.service   # -> active (running)
 sudo obscura add-operator $USER    # add yourself to obscura group
 newgrp obscura                     # or logout/login
@@ -97,7 +97,7 @@ Common causes fixed by the new packages: missing `obscura` group (`sysusers`), n
 
 ## Releases
 
-Current package revision: `1.177-6`, producing `obscura-simple_1.177-6_amd64.deb`. Release assets are not committed. Versioning: `tag.json` tracks upstream (`1.177`); the `-N` suffix is the fork packaging revision.
+Current package revision: `1.177-7`, producing `obscura-simple_1.177-7_amd64.deb`. Release assets are not committed. Versioning: `tag.json` tracks upstream (`1.177`); the `-N` suffix is the fork packaging revision.
 
 ## Differences from React UI
 

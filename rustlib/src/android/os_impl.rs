@@ -57,7 +57,7 @@ impl Os for AndroidOsImpl {
         result
     }
 
-    async fn unset_os_network_config(&self) -> Result<(), ()> {
+    async fn unset_os_network_config(&self, _kill_switch: bool, _local_network_access: bool) -> Result<(), ()> {
         *self.tun.lock().unwrap() = None;
         Ok(())
     }

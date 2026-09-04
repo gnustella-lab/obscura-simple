@@ -11,8 +11,8 @@ pub trait Os: Sync + Send + 'static {
     // TODO: Consider moving this to its own trait with `&mut` receiver and remove sentence above.
     fn set_os_network_config(&self, network_config: OsNetworkConfig, tunnel: QuicWgConnPacketSender) -> impl Future<Output = Result<(), ()>> + Send;
 
-    /// Reset the network state. Returning `Ok()` implies that the OS will stop routing traffic to the tunnel soon.
-    fn unset_os_network_config(&self) -> impl Future<Output = Result<(), ()>> + Send;
+    /// Reset the tunnel network state, retaining leak protection while disconnected when `kill_switch` is enabled.
+    fn unset_os_network_config(&self, kill_switch: bool, local_network_access: bool) -> impl Future<Output = Result<(), ()>> + Send;
 
     /// Will be called when a packet from the relay is received on the tunnel, which should be emitted on the tunnel device.
     fn packet_for_os(&self, packet: Bytes);
@@ -47,7 +47,7 @@ impl<O: Os> Os for RevocableOs<O> {
         os_impl.set_os_network_config(network_config, tunnel).await
     }
 
-    async fn unset_os_network_config(&self) -> Result<(), ()> {
+    async fn unset_os_network_config(&self, kill_switch: bool, local_network_access: bool) -> Result<(), ()> {
         let os_impl_guard = self.inner.read().await;
         let Some(os_impl) = os_impl_guard.as_deref() else {
             drop(os_impl_guard);
@@ -57,7 +57,7 @@ impl<O: Os> Os for RevocableOs<O> {
             );
             return pending().await;
         };
-        os_impl.unset_os_network_config().await
+        os_impl.unset_os_network_config(kill_switch, local_network_access).await
     }
 
     fn packet_for_os(&self, packet: Bytes) {

@@ -86,7 +86,7 @@ pub async fn run(
     if tokio::time::timeout(Duration::from_secs(20), manager_os_impl.revoke()).await.is_err() {
         tracing::warn!(message_id = "cJ4tPz9V", "timed out revoking manager access to OS network integration");
     }
-    if let Err(error) = os_impl.unset_os_network_config().await {
+    if let Err(error) = os_impl.unset_os_network_config(false, false).await {
         tracing::warn!(message_id = "kN5bX1wz", ?error, "failed to revert OS network configuration on shutdown");
     }
 

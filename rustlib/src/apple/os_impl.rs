@@ -80,7 +80,7 @@ impl Os for AppleOsImpl {
         }
     }
 
-    async fn unset_os_network_config(&self) -> Result<(), ()> {
+    async fn unset_os_network_config(&self, _kill_switch: bool, _local_network_access: bool) -> Result<(), ()> {
         // Nothing to do. On Apple platform the OS manages this, not the PacketTunnelProvider implementation.
         Ok(())
     }

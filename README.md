@@ -12,10 +12,10 @@ Obscura VPN library, CLI client, and App — **simple HTML GUI edition** (see [`
 
 ## Releases
 
-Current package revision: `1.177-6` — ready-to-use `.deb` with the simple UI (`obscura-simple_1.177-6_amd64.deb`, ~24M).
+Current package revision: `1.177-7` — ready-to-use `.deb` with the simple UI (`obscura-simple_1.177-7_amd64.deb`, ~24M).
 
 ```bash
-sudo apt install ./obscura-simple_1.177-6_amd64.deb
+sudo apt install ./obscura-simple_1.177-7_amd64.deb
 systemctl status obscura.service   # -> active (running)
 sudo obscura add-operator $USER && newgrp obscura
 ```
@@ -109,8 +109,8 @@ Pass `--dirty` to build production packages from an untagged or modified tree.
 For a quick local `.deb` with the simple UI (without Docker/signing, ready-to-use):
 
 ```bash
-./contrib/bin/build-simple-deb.bash   # builds -> ./obscura-simple_1.177-6_amd64.deb
-sudo apt install ./obscura-simple_1.177-6_amd64.deb
+./contrib/bin/build-simple-deb.bash   # builds -> ./obscura-simple_1.177-7_amd64.deb
+sudo apt install ./obscura-simple_1.177-7_amd64.deb
 systemctl status obscura.service      # -> active (running)
 sudo obscura add-operator $USER && newgrp obscura
 ```

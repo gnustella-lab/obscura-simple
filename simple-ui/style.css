@@ -84,9 +84,15 @@ a:hover{text-decoration:underline}
 .login-layout{max-width:420px;margin:0 auto}
 .or{text-align:center;color:var(--muted);margin:8px 0}
 .generated-number{font-family:ui-monospace,monospace;font-size:20px;font-weight:800;letter-spacing:2px;text-align:center;padding:12px;background:var(--bg);border:1px dashed var(--border);border-radius:10px;margin:10px 0}
-.switch,.checkbox,.radio{display:flex;align-items:center;gap:8px;padding:8px 0;cursor:pointer}
-.switch input, .checkbox input, .radio input{accent-color:var(--primary)}
-.setting-description{margin:0 0 0 24px;max-width:560px}
+.switch,.radio{display:flex;align-items:center;gap:8px;padding:8px 0;cursor:pointer}
+.switch input{appearance:none;flex:0 0 auto;width:40px;height:22px;margin:0;border:1px solid var(--border);border-radius:999px;background:var(--border);cursor:pointer;transition:background-color .15s,border-color .15s}
+.switch input::after{content:"";display:block;width:18px;height:18px;margin:1px;border-radius:50%;background:#fff;box-shadow:0 1px 3px rgba(0,0,0,.25);transition:transform .15s}
+.switch input:checked{border-color:var(--primary);background:var(--primary)}
+.switch input:checked::after{transform:translateX(18px)}
+.switch input:focus-visible{outline:3px solid var(--primary-light);outline-offset:2px}
+.switch input:disabled{cursor:not-allowed;opacity:.55}
+.radio input{accent-color:var(--primary)}
+.setting-description{margin:0 0 0 48px;max-width:560px}
 .center .loader{width:36px;height:36px;border:3px solid var(--border);border-top-color:var(--primary);border-radius:50%;animation:spin 0.8s linear infinite;margin:0 auto 12px}
 @keyframes spin{to{transform:rotate(360deg)}}
 .toast{position:fixed;bottom:16px;left:50%;transform:translateX(-50%);background:var(--text);color:var(--card);padding:10px 16px;border-radius:999px;box-shadow:var(--shadow);font-size:13px;z-index:50}

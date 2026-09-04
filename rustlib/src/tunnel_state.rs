@@ -27,6 +27,7 @@ pub struct TargetState {
     pub dns_content_block: DnsContentBlock,
     pub use_system_dns: bool,
     pub local_network_access: bool,
+    pub kill_switch: bool,
 }
 
 #[derive(derive_more::Debug, EnumIs)]
@@ -210,6 +211,7 @@ impl TunnelState {
                         dns_content_block: _,
                         use_system_dns: _,
                         local_network_access: _,
+                        kill_switch: _,
                     } => tunnel_state.set_disconnected(),
                     TargetState {
                         tunnel_args: Some(target_args),
@@ -217,6 +219,7 @@ impl TunnelState {
                         dns_content_block: _,
                         use_system_dns: _,
                         local_network_access: _,
+                        kill_switch: _,
                     } => tunnel_state.set_connecting(target_args, network_interface, disconnect_reason.take()),
                 });
             }
@@ -228,6 +231,7 @@ impl TunnelState {
                     dns_content_block,
                     use_system_dns,
                     local_network_access,
+                    kill_switch: _,
                 } => {
                     #[cfg(not(any(target_os = "android", target_os = "linux")))]
                     let _ = local_network_access;
@@ -330,11 +334,12 @@ impl TunnelState {
                     network_interface: _,
                     dns_content_block: _,
                     use_system_dns: _,
-                    local_network_access: _,
+                    local_network_access,
+                    kill_switch,
                 } => {
                     selection_state = ExitSelectionState::default();
                     tracing::info!(message_id = "axfILRQy", "reached disconnected target state");
-                    if let Err(()) = os_impl.unset_os_network_config().await {
+                    if let Err(()) = os_impl.unset_os_network_config(*kill_switch, *local_network_access).await {
                         tracing::error!(message_id = "PEgDYAz0", "failed to unset network config");
                     } else {
                         // nothing to do until target args change
@@ -347,6 +352,7 @@ impl TunnelState {
                     dns_content_block: _,
                     use_system_dns: _,
                     local_network_access: _,
+                    kill_switch: _,
                 } => {
                     tracing::warn!(message_id = "0K9Nep8g", "stuck in connecting state without target interface");
                     selection_state = ExitSelectionState::default();

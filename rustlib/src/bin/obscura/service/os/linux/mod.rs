@@ -33,6 +33,14 @@ pub enum TrafficPolicy {
     Disengage,
 }
 
+fn disconnected_policy(kill_switch: bool, local_network_access: bool) -> TrafficPolicy {
+    if kill_switch {
+        TrafficPolicy::Engage { local_network_access, dns: vec![] }
+    } else {
+        TrafficPolicy::Disengage
+    }
+}
+
 pub struct LinuxOsImpl {
     tun: Tun,
     nft: Mutex<NftTable>,
@@ -77,6 +85,24 @@ impl LinuxOsImpl {
     }
 }
 
+#[cfg(test)]
+mod tests {
+    use super::{TrafficPolicy, disconnected_policy};
+
+    #[test]
+    fn disconnected_policy_keeps_filtering_when_kill_switch_is_enabled() {
+        assert_eq!(
+            disconnected_policy(true, true),
+            TrafficPolicy::Engage { local_network_access: true, dns: vec![] }
+        );
+    }
+
+    #[test]
+    fn disconnected_policy_removes_filtering_when_kill_switch_is_disabled() {
+        assert_eq!(disconnected_policy(false, true), TrafficPolicy::Disengage);
+    }
+}
+
 impl Os for LinuxOsImpl {
     async fn set_os_network_config(&self, network_config: OsNetworkConfig, tunnel: QuicWgConnPacketSender) -> Result<(), ()> {
         let mut current_network_config = self.current_network_config.lock().await;
@@ -115,11 +141,12 @@ impl Os for LinuxOsImpl {
         result
     }
 
-    async fn unset_os_network_config(&self) -> Result<(), ()> {
+    async fn unset_os_network_config(&self, kill_switch: bool, local_network_access: bool) -> Result<(), ()> {
         let mut current_network_config = self.current_network_config.lock().await;
         let tun = self.tun.interface();
         let mut result = Ok(());
-        result = result.and(self.routing.send(TrafficPolicy::Disengage).map_err(|error| {
+        let policy = disconnected_policy(kill_switch, local_network_access);
+        result = result.and(self.routing.send(policy.clone()).map_err(|error| {
             tracing::error!(message_id = "fZ8pQm2W", ?error, "route enforcer is not running");
         }));
         match choose_dns_manager(self.dns_manager_arg).await? {
@@ -130,7 +157,7 @@ impl Os for LinuxOsImpl {
                 }
             }
         }
-        result = result.and(self.nft.lock().await.apply_ruleset(TrafficPolicy::Disengage, &tun.name).await);
+        result = result.and(self.nft.lock().await.apply_ruleset(policy, &tun.name).await);
         *current_network_config = result.map(|_| None);
         result
     }

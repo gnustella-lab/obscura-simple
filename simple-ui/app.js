@@ -296,6 +296,9 @@ function renderSettings(){
   if(!appStatus) return;
   $("#toggleAutoConnect").checked = !!appStatus.autoConnect;
   $("#toggleLocalNetwork").checked = !!appStatus.localNetworkAccess;
+  const killSwitchAvailable = (appStatus.featureFlagKeys || []).includes("killSwitch");
+  $("#experimentalSettings").classList.toggle("hidden", !killSwitchAvailable);
+  $("#toggleKillSwitch").checked = appStatus.featureFlags?.killSwitch === true;
   $("#toggleLoginItem").checked = !!osStatus.loginItemStatus?.registered;
   const block=appStatus.dnsContentBlock || {};
   $$("#dnsBlockGrid input").forEach(cb=> cb.checked = !!block[cb.dataset.dns]);
@@ -370,6 +373,13 @@ document.addEventListener("DOMContentLoaded", ()=>{
   };
   $("#toggleAutoConnect").onchange=e=> ffi('setAutoConnect',{enable:e.target.checked}).catch(e=>toast(e.message));
   $("#toggleLocalNetwork").onchange=e=> ffi('setLocalNetworkAccess',{enable:e.target.checked}).catch(e=>toast(e.message));
+  $("#toggleKillSwitch").onchange=async e=>{
+    const enabled=e.target.checked;
+    e.target.disabled=true;
+    try{ await ffi('setFeatureFlag',{flag:'killSwitch', active:enabled}); toast(enabled?"Kill switch enabled":"Kill switch disabled"); }
+    catch(err){ e.target.checked=!enabled; toast("Could not update kill switch: "+err.message); }
+    finally{ e.target.disabled=false; }
+  };
   $("#toggleLoginItem").onchange=async e=>{
     try{ if(e.target.checked) await invoke('registerAsLoginItem'); else await invoke('unregisterAsLoginItem'); toast("Updated"); }
     catch(err){ toast(err.message); e.target.checked=!e.target.checked; }

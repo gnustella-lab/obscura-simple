@@ -94,6 +94,15 @@ pre.mono{background:var(--bg);padding:12px;border-radius:10px;border:1px solid v
 #locationList .exit-card:hover{border-color:var(--primary)}
 #locationList .exit-card.connected{border-color:var(--success);background:rgba(22,163,74,.06)}
 #locationList .flag{font-size:22px}
+#locationList .country-group{border:1px solid var(--border);border-radius:12px;background:var(--card);overflow:hidden}
+#locationList .country-header{width:100%;display:flex;align-items:center;gap:10px;padding:12px 14px;background:var(--card);border:0;cursor:pointer;font-weight:600;font-size:14px;color:var(--text);text-align:left}
+#locationList .country-header:hover{background:var(--primary-light)}
+#locationList .country-header .flag{font-size:22px}
+#locationList .country-header .count{font-weight:500}
+#locationList .country-header .chevron{margin-left:auto;color:var(--muted);transition:transform .15s ease}
+#locationList .country-header[aria-expanded="true"] .chevron{transform:rotate(90deg)}
+#locationList .country-servers{display:flex;flex-direction:column;gap:8px;padding:0 12px 12px}
+#locationList .country-servers.hidden{display:none}
 #accountStatusCard h3{margin-bottom:6px}
 .badge{display:inline-block;padding:2px 8px;border-radius:999px;font-size:11px;font-weight:700}
 .badge.success{background:#dcfce7;color:#166534}

@@ -30,6 +30,7 @@ function generateAccountNumber(){
 }
 let osStatus=null, appStatus=null, accountInfo=null, exitList=[], traffic=null;
 let osVersion=null, exitVersion=null, selectedCity=null, accountRevealed=false, devClicks=0;
+let expandedCountries=new Set();
 const $ = s=>document.querySelector(s);
 const $$ = s=>document.querySelectorAll(s);
 function toast(msg, ms=3000){ const t=$("#toast"); t.textContent=msg; t.classList.remove("hidden"); setTimeout(()=>t.classList.add("hidden"), ms); }
@@ -187,7 +188,7 @@ function renderConnection(){
 }
 function renderLocation(){
   const query=$("#locationSearch").value.toLowerCase(); const list=$("#locationList"); list.innerHTML="";
-  const filtered=exitList.filter(e=> !query || e.city_name.toLowerCase().includes(query) || e.city_code.toLowerCase().includes(query) || e.country_code.toLowerCase().includes(query));
+  const filtered=exitList.filter(e=> !query || e.city_name.toLowerCase().includes(query) || e.city_code.toLowerCase().includes(query) || e.country_code.toLowerCase().includes(query) || countryName(e.country_code).toLowerCase().includes(query));
   $("#locationStats").textContent=`${filtered.length} locations • ${exitList.length} total`;
   $("#locationTitle").textContent = query? `Results for "${query}"` : "Choose location";
   const lastCity=appStatus?.lastChosenExit?.city;
@@ -215,9 +216,25 @@ function renderLocation(){
     });
   }
   const byCountry={}; filtered.forEach(e=>{ if(!byCountry[e.country_code]) byCountry[e.country_code]=[]; byCountry[e.country_code].push(e); });
-  Object.keys(byCountry).sort().forEach(cc=>{
-    const h=document.createElement("h4"); h.textContent=cc.toUpperCase(); h.className="muted small"; list.appendChild(h);
-    byCountry[cc].sort((a,b)=>a.city_name.localeCompare(b.city_name)).forEach(e=> list.appendChild(cardFor(e)));
+  Object.keys(byCountry).sort((a,b)=> countryName(a).localeCompare(countryName(b))).forEach(cc=>{
+    const servers=byCountry[cc].sort((a,b)=>a.city_name.localeCompare(b.city_name));
+    const expanded=expandedCountries.has(cc);
+    const group=document.createElement("div"); group.className="country-group";
+    const header=document.createElement("button"); header.type="button"; header.className="country-header";
+    header.setAttribute("aria-expanded", expanded ? "true" : "false");
+    header.innerHTML=`<span class="flag">${countryFlag(cc)}</span><span class="country-name"></span><span class="count muted small">(${servers.length})</span><span class="chevron" aria-hidden="true">▸</span>`;
+    header.querySelector(".country-name").textContent=countryName(cc);
+    header.querySelector(".chevron").textContent= expanded ? "▾" : "▸";
+    const body=document.createElement("div"); body.className="country-servers"+(expanded?"":" hidden");
+    servers.forEach(e=> body.appendChild(cardFor(e)));
+    header.addEventListener("click", ()=>{
+      if(expandedCountries.has(cc)) expandedCountries.delete(cc); else expandedCountries.add(cc);
+      const isOpen=expandedCountries.has(cc);
+      header.setAttribute("aria-expanded", isOpen ? "true" : "false");
+      header.querySelector(".chevron").textContent= isOpen ? "▾" : "▸";
+      body.classList.toggle("hidden", !isOpen);
+    });
+    group.appendChild(header); group.appendChild(body); list.appendChild(group);
   });
   if(filtered.length===0){
     const d=document.createElement("div"); d.className="card"; d.textContent="No results. Try another term or refresh the list.";
@@ -226,6 +243,18 @@ function renderLocation(){
   }
 }
 function countryFlag(cc){ if(!cc || cc.length!==2) return "🏳️"; const A=0x1F1E6, code=cc.toUpperCase(); return String.fromCodePoint(A+code.charCodeAt(0)-65, A+code.charCodeAt(1)-65); }
+function countryName(cc){
+  if(!cc) return "";
+  try{
+    const lang="en";
+    if(typeof Intl!=="undefined" && Intl.DisplayNames){
+      if(!countryName._dn || countryName._lang!==lang){ countryName._dn=new Intl.DisplayNames([lang], {type:"region"}); countryName._lang=lang; }
+      const name=countryName._dn.of(cc.toUpperCase());
+      if(name && name!==cc.toUpperCase()) return name;
+    }
+  }catch(e){}
+  return cc.toUpperCase();
+}
 function pinSvg(pinned){
   return `<svg width="16" height="16" viewBox="0 0 24 24" fill="${pinned?'currentColor':'none'}" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 21s-7-5.5-7-11a7 7 0 0 1 14 0c0 5.5-7 11-7 11z"/><circle cx="12" cy="10" r="2.5"/></svg>`;
 }

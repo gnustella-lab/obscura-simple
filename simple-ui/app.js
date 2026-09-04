@@ -33,6 +33,50 @@ let osVersion=null, exitVersion=null, selectedCity=null, accountRevealed=false, 
 let expandedCountries=new Set();
 const $ = s=>document.querySelector(s);
 const $$ = s=>document.querySelectorAll(s);
+// Pixel footer: gray squares that fill orange bottom-up on VPN connect.
+let pixelCells=[], pixelFillOrder=[], pixelTimer=null, lastPixelState="";
+function pixelRand(seed){ let t=seed+0x6D2B79F5; return function(){ t=Math.imul(t^t>>>15,t|1); t^=t+Math.imul(t^t>>>7,t|61); return ((t^t>>>14)>>>0)/4294967296; }; }
+function buildPixelGrid(){
+  const grid=$("#pixelGrid"); if(!grid || pixelCells.length) return;
+  const ROWS=5, COLS=40, DENSITY=[0.20,0.35,0.60,0.80,0.95];
+  const rand=pixelRand(1337);
+  const byRow=[[],[],[],[],[]];
+  for(let r=0;r<ROWS;r++){
+    for(let c=0;c<COLS;c++){
+      const div=document.createElement("div");
+      if(rand()<DENSITY[r]){ div.className="pixel"; byRow[r].push(div); }
+      else { div.className="pixel empty"; }
+      grid.appendChild(div);
+      pixelCells.push(div);
+    }
+  }
+  // Fill order bottom-up; shuffle lightly within each row for organic feel.
+  const shuffle=pixelRand(777);
+  for(let r=ROWS-1;r>=0;r--){
+    const row=byRow[r];
+    for(let i=row.length-1;i>0;i--){ const j=Math.floor(shuffle()*(i+1)); [row[i],row[j]]=[row[j],row[i]]; }
+    pixelFillOrder.push(...row);
+  }
+}
+function pixelSetAll(on){ pixelCells.forEach(el=>{ if(!el.classList.contains("empty")) el.classList.toggle("on",on); }); }
+function renderPixelFooter(isConnected, isConnecting){
+  const state=isConnected?"connected":isConnecting?"connecting":"disconnected";
+  if(state===lastPixelState) return;
+  lastPixelState=state;
+  if(pixelTimer){ clearInterval(pixelTimer); pixelTimer=null; }
+  if(!pixelCells.length) return;
+  const reduced=window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  if(state==="connected" || (state==="connecting" && reduced)){ pixelSetAll(true); return; }
+  if(state==="disconnected"){ pixelSetAll(false); return; }
+  // connecting: progressive bottom-up fill over ~2s
+  pixelSetAll(false);
+  let idx=0;
+  const step=Math.max(1, Math.ceil(pixelFillOrder.length/20));
+  pixelTimer=setInterval(()=>{
+    for(let k=0;k<step && idx<pixelFillOrder.length;k++,idx++) pixelFillOrder[idx].classList.add("on");
+    if(idx>=pixelFillOrder.length){ clearInterval(pixelTimer); pixelTimer=null; }
+  },100);
+}
 function toast(msg, ms=3000){ const t=$("#toast"); t.textContent=msg; t.classList.remove("hidden"); setTimeout(()=>t.classList.add("hidden"), ms); }
 const VIEWS=["connection","location","account","settings","help","about","developer"];
 function isValidView(v){ return VIEWS.includes(v); }
@@ -185,6 +229,7 @@ function renderConnection(){
     const mins=Math.floor(traffic.connectedMs/60000);
     $("#sessionInfo").textContent=`Session: ${mins} min • ↓ ${(traffic.rxBytes/1024/1024).toFixed(1)} MB • ↑ ${(traffic.txBytes/1024/1024).toFixed(1)} MB • ping ${traffic.latestLatencyMs||"-"} ms`;
   } else { $("#sessionCard").style.display="none"; }
+  renderPixelFooter(isConnected, isConnecting);
 }
 function renderLocation(){
   const query=$("#locationSearch").value.toLowerCase(); const list=$("#locationList"); list.innerHTML="";
@@ -198,7 +243,8 @@ function renderLocation(){
   function cardFor(exit){
     const key=`${exit.country_code}:${exit.city_code}`; const isConnected=key===connectedKey; const isPinned=pinnedSet.has(key); const isLast=lastCity && `${lastCity.country_code}:${lastCity.city_code}`===key;
     const div=document.createElement("div"); div.className="exit-card"+(isConnected?" connected":"");
-    div.innerHTML=`<div class="flag">${countryFlag(exit.country_code)}</div><div class="flex-1"><div style="font-weight:600">${exit.city_name} <span class="muted small">${exit.country_code.toUpperCase()}</span></div><div class="small muted">${exit.provider_id} • ${exit.city_code}</div></div><div style="display:flex;gap:6px;align-items:center">${isConnected?'<span class="badge success">Connected</span>':''}${isLast?'<span class="badge warning">Recent</span>':''}<button class="icon-btn pin-btn" title="${isPinned?'Unpin':'Pin'}">${pinSvg(isPinned)}</button></div>`;
+    div.innerHTML=`<div class="flag">${flagSvg(exit.country_code)}</div><div class="flex-1"><div style="font-weight:600">${exit.city_name} <span class="muted small">${exit.country_code.toUpperCase()}</span></div><div class="small muted">${exit.provider_id} • ${exit.city_code}</div></div><div style="display:flex;gap:6px;align-items:center">${isConnected?'<span class="badge success">Connected</span>':''}${isLast?'<span class="badge warning">Recent</span>':''}<button class="icon-btn pin-btn" title="${isPinned?'Unpin':'Pin'}">${pinSvg(isPinned)}</button></div>`;
+    hydrateFlagImgs(div);
     div.addEventListener("click", (e)=>{
       if(e.target.closest(".pin-btn")){ togglePin(exit, isPinned); e.stopPropagation(); return; }
       connectCity(exit);
@@ -222,16 +268,15 @@ function renderLocation(){
     const group=document.createElement("div"); group.className="country-group";
     const header=document.createElement("button"); header.type="button"; header.className="country-header";
     header.setAttribute("aria-expanded", expanded ? "true" : "false");
-    header.innerHTML=`<span class="flag">${countryFlag(cc)}</span><span class="country-name"></span><span class="count muted small">(${servers.length})</span><span class="chevron" aria-hidden="true">▸</span>`;
+    header.innerHTML=`<span class="flag">${flagSvg(cc)}</span><span class="country-name"></span><span class="count muted small">(${servers.length})</span><span class="chevron" aria-hidden="true">${chevronSvg()}</span>`;
+    hydrateFlagImgs(header);
     header.querySelector(".country-name").textContent=countryName(cc);
-    header.querySelector(".chevron").textContent= expanded ? "▾" : "▸";
     const body=document.createElement("div"); body.className="country-servers"+(expanded?"":" hidden");
     servers.forEach(e=> body.appendChild(cardFor(e)));
     header.addEventListener("click", ()=>{
       if(expandedCountries.has(cc)) expandedCountries.delete(cc); else expandedCountries.add(cc);
       const isOpen=expandedCountries.has(cc);
       header.setAttribute("aria-expanded", isOpen ? "true" : "false");
-      header.querySelector(".chevron").textContent= isOpen ? "▾" : "▸";
       body.classList.toggle("hidden", !isOpen);
     });
     group.appendChild(header); group.appendChild(body); list.appendChild(group);
@@ -242,7 +287,26 @@ function renderLocation(){
     d.appendChild(document.createElement("br")); d.appendChild(btn); list.appendChild(d);
   }
 }
-function countryFlag(cc){ if(!cc || cc.length!==2) return "🏳️"; const A=0x1F1E6, code=cc.toUpperCase(); return String.fromCodePoint(A+code.charCodeAt(0)-65, A+code.charCodeAt(1)-65); }
+function escHtml(s){ return String(s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;"); }
+function flagBadge(cc){ const code=((cc||"?").toString().toUpperCase().slice(0,2)); return `<span class="flag-badge" aria-hidden="true">${escHtml(code)}</span>`; }
+function flagSvg(cc){
+  if(!cc || !/^[a-zA-Z]{2}$/.test(cc)) return flagBadge(cc);
+  return `<img class="flag-img" src="./flags/${cc.toLowerCase()}.svg" alt="" data-cc="${escHtml(cc.toLowerCase())}" loading="lazy">`;
+}
+function hydrateFlagImgs(root){
+  root.querySelectorAll("img.flag-img").forEach(img=>{
+    img.addEventListener("error", ()=>{
+      const s=document.createElement("span"); s.className="flag-badge"; s.setAttribute("aria-hidden","true");
+      s.textContent=(img.getAttribute("data-cc")||"?").toUpperCase(); img.replaceWith(s);
+    }, {once:true});
+  });
+}
+function chevronSvg(){
+  return `<svg class="chevron-svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m9 6 6 6-6 6"/></svg>`;
+}
+function smallCheckSvg(){
+  return `<svg class="inline-icon" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m5 13 4 4L19 7"/></svg>`;
+}
 function countryName(cc){
   if(!cc) return "";
   try{
@@ -306,6 +370,7 @@ function renderSettings(){
   $$('input[name="dnsMode"]').forEach(r=> r.checked = r.value===mode);
 }
 document.addEventListener("DOMContentLoaded", ()=>{
+  buildPixelGrid();
   $("#nav").addEventListener("click", e=>{ const btn=e.target.closest(".nav-btn"); if(btn) requestNavigation(btn.dataset.view); });
   // Back/forward or manual hash edit: push to backend, let long-poll confirm.
   // Own syncHashToView uses replaceState so it does not fire this.
@@ -344,7 +409,7 @@ document.addEventListener("DOMContentLoaded", ()=>{
     const gen=generateAccountNumber(); window._generatedAccount=gen;
     try{ await ffi('setInNewAccountFlow',{value:true}); await ffi('login',{accountId:gen, validate:true}); renderLogin(); toast("Account created, copy the number!"); }catch(e){ toast(e.message); }
   };
-  $("#btnCopyGenerated").onclick=()=>{ navigator.clipboard.writeText(window._generatedAccount||""); toast("Copied!"); $("#btnCopyGenerated").textContent="Copied ✓"; };
+  $("#btnCopyGenerated").onclick=()=>{ navigator.clipboard.writeText(window._generatedAccount||""); toast("Copied!"); $("#btnCopyGenerated").innerHTML=`Copied ${smallCheckSvg()}`; };
   $("#btnDoneGenerated").onclick=async()=>{ try{ await ffi('setInNewAccountFlow',{value:false}); window._generatedAccount=null; toast("Done!"); render(); }catch(e){ toast(e.message); } };
   $("#btnWantExisting").onclick=async()=>{ try{ await ffi('logout'); await ffi('setInNewAccountFlow',{value:false}); window._generatedAccount=null; render(); }catch(e){ toast(e.message); } };
   $("#btnQuickConnect").onclick=()=> invoke('startTunnel',{tunnelArgs:JSON.stringify({exit:{any:{}}})}).catch(e=>toast(e.message));

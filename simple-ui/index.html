@@ -107,7 +107,7 @@
             <div class="progress-step"><span class="dot"></span> Internet</div>
           </div>
           <div class="row center gap" id="connActions">
-            <button id="btnQuickConnect" class="btn primary large">Quick connect ⚡</button>
+            <button id="btnQuickConnect" class="btn primary large">Quick connect <svg class="inline-icon" width="15" height="15" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M13 2 4.5 13.5H11L9.5 22 19 10h-6.5L13 2z"/></svg></button>
             <button id="btnCancelConnect" class="btn hidden">Cancel</button>
             <button id="btnDisconnect" class="btn danger hidden">Disconnect</button>
           </div>
@@ -127,6 +127,10 @@
         <div class="card" id="sessionCard" style="display:none">
           <h4>Current session</h4>
           <p class="small muted" id="sessionInfo"></p>
+        </div>
+
+        <div class="card pixel-card">
+          <div class="pixel-grid" id="pixelGrid" aria-hidden="true"></div>
         </div>
       </div>
     </section>

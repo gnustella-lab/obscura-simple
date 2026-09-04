@@ -101,14 +101,18 @@ pre.mono{background:var(--bg);padding:12px;border-radius:10px;border:1px solid v
 #locationList .exit-card{display:flex;align-items:center;gap:12px;padding:12px;border:1px solid var(--border);border-radius:12px;background:var(--card);cursor:pointer}
 #locationList .exit-card:hover{border-color:var(--primary)}
 #locationList .exit-card.connected{border-color:var(--success);background:rgba(22,163,74,.06)}
-#locationList .flag{font-size:22px}
+#locationList .flag{display:inline-flex;align-items:center}
+#locationList .flag-img{width:26px;height:auto;aspect-ratio:3/2;object-fit:cover;border-radius:4px;border:1px solid var(--border);display:block}
+#locationList .flag-badge{display:inline-flex;align-items:center;justify-content:center;min-width:26px;height:20px;padding:0 4px;border-radius:4px;border:1px solid var(--border);background:var(--bg);color:var(--muted);font-size:10px;font-weight:700;letter-spacing:.5px}
+.inline-icon{vertical-align:-2px}
 #locationList .country-group{border:1px solid var(--border);border-radius:12px;background:var(--card);overflow:hidden}
 #locationList .country-header{width:100%;display:flex;align-items:center;gap:10px;padding:12px 14px;background:var(--card);border:0;cursor:pointer;font-weight:600;font-size:14px;color:var(--text);text-align:left}
 #locationList .country-header:hover{background:var(--primary-light)}
-#locationList .country-header .flag{font-size:22px}
+#locationList .country-header .flag{display:inline-flex;align-items:center}
 #locationList .country-header .count{font-weight:500}
-#locationList .country-header .chevron{margin-left:auto;color:var(--muted);transition:transform .15s ease}
-#locationList .country-header[aria-expanded="true"] .chevron{transform:rotate(90deg)}
+#locationList .country-header .chevron{margin-left:auto;color:var(--muted);display:inline-flex;align-items:center}
+#locationList .country-header .chevron-svg{display:block;transition:transform .15s ease}
+#locationList .country-header[aria-expanded="true"] .chevron-svg{transform:rotate(90deg)}
 #locationList .country-servers{display:flex;flex-direction:column;gap:8px;padding:0 12px 12px}
 #locationList .country-servers.hidden{display:none}
 #accountStatusCard h3{margin-bottom:6px}
@@ -116,4 +120,10 @@ pre.mono{background:var(--bg);padding:12px;border-radius:10px;border:1px solid v
 .badge.success{background:#dcfce7;color:#166534}
 .badge.warning{background:#fef3c7;color:#92400e}
 .badge.danger{background:#fee2e2;color:#991b1b}
-@media (max-width:600px){ .nav{padding:8px} .main{padding:12px} .grid2{grid-template-columns:1fr} }
+.pixel-card{padding:12px}
+.pixel-grid{display:grid;grid-template-columns:repeat(40,1fr);gap:4px}
+.pixel{aspect-ratio:1/1;border-radius:2px;background:var(--border);transition:background-color .25s ease}
+.pixel.on{background:var(--primary)}
+.pixel.empty{visibility:hidden}
+@media (max-width:600px){ .nav{padding:8px} .main{padding:12px} .grid2{grid-template-columns:1fr} .pixel-grid{grid-template-columns:repeat(28,1fr);gap:3px} .pixel-card{padding:10px} }
+@media (prefers-reduced-motion: reduce){ .pixel{transition:none} }

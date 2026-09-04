@@ -33,12 +33,44 @@ let osVersion=null, exitVersion=null, selectedCity=null, accountRevealed=false, 
 const $ = s=>document.querySelector(s);
 const $$ = s=>document.querySelectorAll(s);
 function toast(msg, ms=3000){ const t=$("#toast"); t.textContent=msg; t.classList.remove("hidden"); setTimeout(()=>t.classList.add("hidden"), ms); }
-function showView(name){
+const VIEWS=["connection","location","account","settings","help","about","developer"];
+function isValidView(v){ return VIEWS.includes(v); }
+function setTopNavVisible(visible){ const nav=$("#nav"); if(nav) nav.style.display=visible?"":"none"; }
+function syncHashToView(name){
+  if(!isValidView(name)) return;
+  try{
+    if(location.hash !== "#"+name) history.replaceState(null,"","#"+name);
+  }catch(e){}
+}
+function showViewLocal(name){
   $$(".view").forEach(v=>v.classList.add("hidden"));
   const el=$("#view-"+name); if(el) el.classList.remove("hidden");
   $$(".nav-btn").forEach(b=>b.classList.toggle("active", b.dataset.view===name));
-  if(["connection","location","account","settings","help","about"].includes(name)) invoke('setNavigationView',{view:name}).catch(()=>{});
 }
+function showView(name){
+  showViewLocal(name);
+  // Transient views mirror the native sidebar (hidden): no backend sync, no hash.
+  if(name==="splash"||name==="degraded"||name==="login"){ setTopNavVisible(false); return; }
+  setTopNavVisible(true);
+  if(!isValidView(name)) return;
+  syncHashToView(name);
+  // Backend (osStatus.navigationView) is the source of truth, like the React UI.
+  // Only push when it differs to avoid loops; the long-poll will confirm.
+  if(osStatus && osStatus.navigationView !== name){
+    invoke('setNavigationView',{view:name}).catch(()=>{});
+  }
+}
+// Optimistic navigation from top bar / help button / back-forward.
+// Shows instantly and pushes to backend; the osStatus long-poll then confirms
+// and the native left sidebar follows automatically.
+function requestNavigation(name){
+  if(!isValidView(name)) return;
+  if(osStatus && osStatus.navigationView === name){
+    showViewLocal(name); setTopNavVisible(true); syncHashToView(name); return;
+  }
+  showView(name);
+}
+let initialNavSynced=false;
 function latestAppStatus(serviceStatus){
   if(!serviceStatus || serviceStatus==="initializing") return undefined;
   if(serviceStatus.healthy) return serviceStatus.healthy;
@@ -75,8 +107,22 @@ function render(){
   if(!appStatus){ $("#splashDetail").textContent="Loading status..."; showView("splash"); return; }
   $("#appVersion").textContent = osStatus.srcVersion || appStatus.version || "v1.177";
   if(!appStatus.accountId || appStatus.inNewAccountFlow){ renderLogin(); showView("login"); return; }
-  const hash = location.hash.replace("#","") || osStatus.navigationView || "connection";
-  const view = ["connection","location","account","settings","help","about","developer"].includes(hash) ? hash : "connection";
+  // Backend is the source of truth so the native left sidebar and the web
+  // top bar stay in sync (same as React `<Routes location={osStatus.navigationView}>`).
+  // `location.hash` is only a mirror for refresh/deep-link, never overrides backend.
+  const hash = location.hash.replace("#","");
+  const backendView = isValidView(osStatus.navigationView) ? osStatus.navigationView : "connection";
+  if(!initialNavSynced && isValidView(hash) && hash !== backendView){
+    // Honor refresh/deep-link once: push it to backend, show optimistically.
+    initialNavSynced=true;
+    renderConnection(); renderLocation(); renderAccount(); renderSettings();
+    showView(hash);
+    $("#devOsStatus").textContent = JSON.stringify(osStatus,null,2);
+    $("#devAppStatus").textContent = JSON.stringify(appStatus,null,2);
+    return;
+  }
+  initialNavSynced=true;
+  const view = backendView;
   renderConnection(); renderLocation(); renderAccount(); renderSettings();
   showView(view);
   $("#devOsStatus").textContent = JSON.stringify(osStatus,null,2);
@@ -228,9 +274,15 @@ function renderSettings(){
   $$('input[name="dnsMode"]').forEach(r=> r.checked = r.value===mode);
 }
 document.addEventListener("DOMContentLoaded", ()=>{
-  $("#nav").addEventListener("click", e=>{ const btn=e.target.closest(".nav-btn"); if(btn) { location.hash=btn.dataset.view; render(); } });
-  window.addEventListener("hashchange", render);
-  $("#btnMinHelp").onclick=()=>{ location.hash="help"; render(); };
+  $("#nav").addEventListener("click", e=>{ const btn=e.target.closest(".nav-btn"); if(btn) requestNavigation(btn.dataset.view); });
+  // Back/forward or manual hash edit: push to backend, let long-poll confirm.
+  // Own syncHashToView uses replaceState so it does not fire this.
+  window.addEventListener("hashchange", ()=>{
+    if(!osStatus) return;
+    const h=location.hash.replace("#","");
+    if(isValidView(h) && h!==osStatus.navigationView) requestNavigation(h);
+  });
+  $("#btnMinHelp").onclick=()=> requestNavigation("help");
   $("#btnRestartService").onclick=async()=>{
     try{ await invoke('restartService',{enable:true}); toast("Restart requested, waiting for service..."); }
     catch(e){
@@ -310,7 +362,7 @@ document.addEventListener("DOMContentLoaded", ()=>{
       toast("Bundle generated");
     }catch(e){ toast(e.message); } finally{ $("#btnDebugBundle").disabled=false; $("#btnDebugBundle").textContent="Generate debug bundle"; }
   };
-  $("#aboutVersion").addEventListener("click", ()=>{ devClicks++; if(devClicks>=5){ location.hash="developer"; render(); devClicks=0; } });
+  $("#aboutVersion").addEventListener("click", ()=>{ devClicks++; if(devClicks>=5){ requestNavigation("developer"); devClicks=0; } });
   $("#btnLicenses").onclick=()=>{
     const c=$("#licensesCard"); c.style.display=c.style.display==="none"?"block":"none";
   };

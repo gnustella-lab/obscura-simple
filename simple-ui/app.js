@@ -99,12 +99,12 @@ function renderLogin(){
 function renderConnection(){
   const vpnStatus=appStatus.vpnStatus; const isConnected=vpnConnected(vpnStatus); const isConnecting=!!vpnStatus.connecting;
   const connectingCity=getCityFromStatus(vpnStatus); const lastCity = appStatus.lastChosenExit?.city; const targetCity = connectingCity || lastCity;
-  let title="Disconnected", subtitle="Connect to browse privately", mascot="🛡️";
-  if(!osStatus.internetAvailable){ title="No internet"; subtitle="Connect to the internet to use VPN"; mascot="📡"; }
-  else if(appStatus.account && !appStatus.account.account_info.active){ title="Account expired"; subtitle="Renew to continue"; mascot="💳"; }
-  else if(isConnected){ const exit=vpnStatus.connected.exit; title=`Connected to ${exit.city_name}`; subtitle=`${exit.country_code ? exit.country_code.toUpperCase() : ""} • ${exit.provider_id}`; mascot="✅"; }
-  else if(isConnecting){ title= connectingCity ? `Connecting to ${connectingCity.city_code}` : "Connecting..."; subtitle="Establishing secure tunnel"; mascot="⏳"; }
-  $("#connTitle").textContent=title; $("#connSubtitle").textContent=subtitle; $("#heroMascot").textContent=mascot;
+  let title="Disconnected", subtitle="Connect to browse privately";
+  if(!osStatus.internetAvailable){ title="No internet"; subtitle="Connect to the internet to use VPN"; }
+  else if(appStatus.account && !appStatus.account.account_info.active){ title="Account expired"; subtitle="Renew to continue"; }
+  else if(isConnected){ const exit=vpnStatus.connected.exit; title=`Connected to ${exit.city_name}`; subtitle=`${exit.country_code ? exit.country_code.toUpperCase() : ""} • ${exit.provider_id}`; }
+  else if(isConnecting){ title= connectingCity ? `Connecting to ${connectingCity.city_code}` : "Connecting..."; subtitle="Establishing secure tunnel"; }
+  $("#connTitle").textContent=title; $("#connSubtitle").textContent=subtitle;
   const dots=$$("#progressTrack .dot"); const lines=$$("#progressTrack .progress-line");
   dots.forEach(d=>d.className="dot"); lines.forEach(l=>l.className="progress-line");
   if(isConnected){ dots.forEach(d=>d.classList.add("connected")); lines.forEach(l=>l.classList.add("active")); }
@@ -119,7 +119,7 @@ function renderConnection(){
     const og=document.createElement("optgroup"); og.label="Pinned";
     appStatus.pinnedLocations.forEach(p=>{
       const ex=exits.find(e=>e.city_code===p.city_code && e.country_code===p.country_code);
-      if(ex){ const o=document.createElement("option"); o.value=`${ex.country_code}:${ex.city_code}`; o.textContent=`📌 ${ex.city_name}, ${ex.country_code.toUpperCase()}`; og.appendChild(o); }
+      if(ex){ const o=document.createElement("option"); o.value=`${ex.country_code}:${ex.city_code}`; o.textContent=`${ex.city_name}, ${ex.country_code.toUpperCase()}`; og.appendChild(o); }
     }); sel.appendChild(og);
   }
   const byCountry={}; exits.forEach(e=>{ if(!byCountry[e.country_code]) byCountry[e.country_code]=[]; byCountry[e.country_code].push(e); });
@@ -151,7 +151,7 @@ function renderLocation(){
   function cardFor(exit){
     const key=`${exit.country_code}:${exit.city_code}`; const isConnected=key===connectedKey; const isPinned=pinnedSet.has(key); const isLast=lastCity && `${lastCity.country_code}:${lastCity.city_code}`===key;
     const div=document.createElement("div"); div.className="exit-card"+(isConnected?" connected":"");
-    div.innerHTML=`<div class="flag">${countryFlag(exit.country_code)}</div><div class="flex-1"><div style="font-weight:600">${exit.city_name} <span class="muted small">${exit.country_code.toUpperCase()}</span></div><div class="small muted">${exit.provider_id} • ${exit.city_code}</div></div><div style="display:flex;gap:6px;align-items:center">${isConnected?'<span class="badge success">Connected</span>':''}${isLast?'<span class="badge warning">Recent</span>':''}<button class="icon-btn pin-btn" title="${isPinned?'Unpin':'Pin'}">${isPinned?'📌':'📍'}</button></div>`;
+    div.innerHTML=`<div class="flag">${countryFlag(exit.country_code)}</div><div class="flex-1"><div style="font-weight:600">${exit.city_name} <span class="muted small">${exit.country_code.toUpperCase()}</span></div><div class="small muted">${exit.provider_id} • ${exit.city_code}</div></div><div style="display:flex;gap:6px;align-items:center">${isConnected?'<span class="badge success">Connected</span>':''}${isLast?'<span class="badge warning">Recent</span>':''}<button class="icon-btn pin-btn" title="${isPinned?'Unpin':'Pin'}">${pinSvg(isPinned)}</button></div>`;
     div.addEventListener("click", (e)=>{
       if(e.target.closest(".pin-btn")){ togglePin(exit, isPinned); e.stopPropagation(); return; }
       connectCity(exit);
@@ -180,6 +180,15 @@ function renderLocation(){
   }
 }
 function countryFlag(cc){ if(!cc || cc.length!==2) return "🏳️"; const A=0x1F1E6, code=cc.toUpperCase(); return String.fromCodePoint(A+code.charCodeAt(0)-65, A+code.charCodeAt(1)-65); }
+function pinSvg(pinned){
+  return `<svg width="16" height="16" viewBox="0 0 24 24" fill="${pinned?'currentColor':'none'}" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 21s-7-5.5-7-11a7 7 0 0 1 14 0c0 5.5-7 11-7 11z"/><circle cx="12" cy="10" r="2.5"/></svg>`;
+}
+function cardSvg(){
+  return `<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="2" y="5" width="20" height="14" rx="2"/><line x1="2" y1="10" x2="22" y2="10"/></svg>`;
+}
+function checkSvg(){
+  return `<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="m8.5 12.5 2.5 2.5 4.5-5.5"/></svg>`;
+}
 async function togglePin(exit, isPinned){
   let pins=[...appStatus.pinnedLocations]; const key=`${exit.country_code}:${exit.city_code}`;
   if(isPinned) pins=pins.filter(p=> `${p.country_code}:${p.city_code}`!==key);
@@ -193,14 +202,14 @@ async function connectCity(exit){
 function renderAccount(){
   const card=$("#accountStatusCard"); const info=accountInfo; let html="";
   if(!info){ html=`<h3>Status unavailable</h3><p class="muted">Could not load account data.</p><button class="btn small" onclick="pollAccountNow()">Refresh</button>`; }
-  else if(!info.active){ html=`<div class="row gap"><span style="font-size:24px">💳</span><div><h3>Account expired</h3><p class="muted">Top up to reactivate.</p></div><span class="badge danger">Expired</span></div><button class="btn small" onclick="pollAccountNow()">Refresh</button>`; }
+  else if(!info.active){ html=`<div class="row gap"><span style="font-size:24px;display:inline-flex">${cardSvg()}</span><div><h3>Account expired</h3><p class="muted">Top up to reactivate.</p></div><span class="badge danger">Expired</span></div><button class="btn small" onclick="pollAccountNow()">Refresh</button>`; }
   else {
     const expiry=paidUntil(info); const isRenewing=!!(info.stripe_subscription || info.apple_subscription || info.google_subscription);
     const daysLeft=Math.floor((expiry - Date.now())/86400000); let heading="Active", badge="success", sub=`Expires on ${expiry.toLocaleDateString()}`;
     if(isRenewing) { heading="Subscription active"; sub=`Renews on ${expiry.toLocaleDateString()} • ${daysLeft} days`; }
     else if(daysLeft<3){ heading="Expires soon"; badge="danger"; sub=`${daysLeft} days remaining`; }
     else if(daysLeft<10){ heading="Expires soon"; badge="warning"; }
-    html=`<div class="row gap"><span style="font-size:24px">✅</span><div><h3>${heading}</h3><p class="muted">${sub}</p></div><span class="badge ${badge}">${daysLeft}d</span></div><div class="row gap" style="margin-top:10px"><button class="btn small" onclick="pollAccountNow()">Refresh</button><a class="btn small primary" href="https://obscura.com/pay#account_id=${encodeURIComponent(appStatus.accountId)}" target="_blank">Manage payment</a></div>`;
+    html=`<div class="row gap"><span style="font-size:24px;display:inline-flex">${checkSvg()}</span><div><h3>${heading}</h3><p class="muted">${sub}</p></div><span class="badge ${badge}">${daysLeft}d</span></div><div class="row gap" style="margin-top:10px"><button class="btn small" onclick="pollAccountNow()">Refresh</button><a class="btn small primary" href="https://obscura.com/pay#account_id=${encodeURIComponent(appStatus.accountId)}" target="_blank">Manage payment</a></div>`;
   }
   card.innerHTML=html;
   const display=$("#accountNumberDisplay"); const raw=appStatus.accountId || "";

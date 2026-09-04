@@ -4,11 +4,13 @@ A lightweight, intuitive HTML/CSS/JS replacement for the React/Mantine `obscura-
 
 ## Features
 
-- **Vanilla JS** (~26K `app.js` + 5.8K `style.css` + 12K `index.html`) – no Node dependencies at runtime
+- **Vanilla JS** (~28K `app.js` + ~6K `style.css` + ~12K `index.html`) – no Node dependencies at runtime
 - **Same Rust bridge** (`window.webkit.messageHandlers.commandBridge.postMessage`) as the original – uses `getOsStatus` long-poll, `jsonFfiCmd` for all `ManagerCmd` (login, status, exit list, DNS, etc.), `startTunnel`/`stopTunnel`
-- **Views:** Connection (quick connect, city select, progress, session), Location (search, pinned, last used, grouped by country), Account (status, copy/reveal, logout/delete), Settings (auto-connect, local network, DNS blocking, appearance), Help (debug bundle), About, Developer
+- **Views:** Connection (quick connect, city select, progress, session), Location (search, pinned, last used, grouped by country), Account (status, copy/reveal, logout/delete), Settings (auto-connect, local network, DNS blocking, appearance), Help (debug bundle), About, Developer (5x click on the version in About)
+- **Navigation:** the backend `osStatus.navigationView` is the source of truth, like the React UI — the native left sidebar and the web top bar stay in sync via `setNavigationView` and the `getOsStatus` long-poll; `location.hash` (`#connection`, `#location`, etc.) is only a mirror for refresh/deep-link
+- **Dark theme** via `color-scheme: light dark` and the official robot logo (`simple-ui/logo.svg`) in the header, hero, and About views
 - **Account handling:** Verhoeff checksum (same as `accountUtils.ts`), `normalizeAccountId` strips dashes/spaces, `generateAccountNumber` via `crypto.getRandomValues`
-- **Integration:** `simple-ui/` is packaged via `rustlib/gen-gresource-xml.py` → `webui.gresource` (43K vs 1.6M React) + `icons.gresource`, built with `OBSCURA_GRESOURCES_DIR=/tmp/obscura-gresources cargo build --features gui --bin obscura-gui`
+- **Integration:** `simple-ui/` is packaged via `rustlib/gen-gresource-xml.py` → `webui.gresource` (~80K vs 1.6M React) + `icons.gresource`, built with `OBSCURA_GRESOURCES_DIR=/tmp/obscura-gresources cargo build --features gui --bin obscura-gui`
 
 ## Build
 
@@ -49,9 +51,9 @@ A complete `.deb` with the simple UI, service auto-enabled and auto-started:
 # One command: builds gresources + release binaries + stages a proper Debian package
 ./contrib/bin/build-simple-deb.bash
 # or: ./simple-ui/build-deb.sh
-# outputs: ./obscura-simple_1.177-1_amd64.deb
+# outputs: ./obscura-simple_1.177-4_amd64.deb (see Releases for the prebuilt package)
 
-sudo apt install ./obscura-simple_1.177-1_amd64.deb
+sudo apt install ./obscura-simple_1.177-4_amd64.deb
 systemctl status obscura.service   # -> active (running)
 sudo obscura add-operator $USER    # add yourself to obscura group
 newgrp obscura                     # or logout/login
@@ -93,9 +95,13 @@ id -nG $USER | tr ' ' '\n' | grep obscura || echo "not in group -> sudo obscura 
 
 Common causes fixed by the new packages: missing `obscura` group (`sysusers`), not enabled (`preset`), not started (`postinst`), stale sockets (`rm -f /run/obscura.sock` when no service running).
 
+## Releases
+
+Latest: [`v1.177-simple-4`](https://github.com/gnustella-lab/obscura-simple/releases/tag/v1.177-simple-4) with `obscura-simple_1.177-4_amd64.deb` as a release asset (not committed). Versioning: `tag.json` tracks upstream (`1.177`); the `-N` suffix is the fork packaging revision.
+
 ## Differences from React UI
 
 - No Framer Motion, Mantine, or Vite build step at runtime
 - No animations, but same polling intervals (osStatus long-poll, exit list 60s, account 30s, traffic 1s)
 - Account creation still uses same Verhoeff and `payUrl` (`https://obscura.com/pay#account_id=`)
-- Navigation via hash (`#connection`, `#location`, etc.) and `setNavigationView` sync
+- Navigation follows the backend `osStatus.navigationView` (same as `<Routes location={osStatus.navigationView}>`); the web top bar pushes via `setNavigationView` and mirrors the view in `location.hash` with `history.replaceState`

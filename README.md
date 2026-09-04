@@ -12,15 +12,15 @@ Obscura VPN library, CLI client, and App — **simple HTML GUI edition** (see [`
 
 ## Releases
 
-Latest: [`v1.177-simple-4`](https://github.com/gnustella-lab/obscura-simple/releases/tag/v1.177-simple-4) — ready-to-use `.deb` with the simple UI (`obscura-simple_1.177-4_amd64.deb`, ~24M).
+Latest: [`v1.177-simple-5`](https://github.com/gnustella-lab/obscura-simple/releases/tag/v1.177-simple-5) — ready-to-use `.deb` with the simple UI (`obscura-simple_1.177-5_amd64.deb`, ~24M).
 
 ```bash
-sudo apt install ./obscura-simple_1.177-4_amd64.deb
+sudo apt install ./obscura-simple_1.177-5_amd64.deb
 systemctl status obscura.service   # -> active (running)
 sudo obscura add-operator $USER && newgrp obscura
 ```
 
-The `.deb` is published as a release asset (not committed to the repo). Versioning: `tag.json` tracks the upstream version (`1.177`); the `-N` suffix (`-4`) is the fork packaging revision (`v1.177-simple-N` tags). See all releases [here](https://github.com/gnustella-lab/obscura-simple/releases).
+The `.deb` is published as a release asset (not committed to the repo). Versioning: `tag.json` tracks the upstream version (`1.177`); the `-N` suffix (`-5`) is the fork packaging revision (`v1.177-simple-N` tags). See all releases [here](https://github.com/gnustella-lab/obscura-simple/releases).
 
 ## Support
 
@@ -109,8 +109,8 @@ Pass `--dirty` to build production packages from an untagged or modified tree.
 For a quick local `.deb` with the simple UI (without Docker/signing, ready-to-use):
 
 ```bash
-./contrib/bin/build-simple-deb.bash   # builds -> ./obscura-simple_1.177-4_amd64.deb
-sudo apt install ./obscura-simple_1.177-4_amd64.deb
+./contrib/bin/build-simple-deb.bash   # builds -> ./obscura-simple_1.177-5_amd64.deb
+sudo apt install ./obscura-simple_1.177-5_amd64.deb
 systemctl status obscura.service      # -> active (running)
 sudo obscura add-operator $USER && newgrp obscura
 ```

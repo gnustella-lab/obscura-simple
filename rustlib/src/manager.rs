@@ -50,10 +50,16 @@ pub struct Manager {
     service_debug_bundles: Mutex<HashMap<ServiceDebugBundleToken, Utf8PathBuf>>,
 }
 
+#[cfg(test)]
+#[path = "manager_firewall_test.rs"]
+mod firewall_tests;
+
 // Keep synchronized with ../../apple/shared/NetworkExtensionIpc.swift
 #[derive(Debug, Serialize, PartialEq, Eq, Clone, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct Status {
+    #[serde(default)]
+    pub firewall_status: crate::os::os_trait::FirewallStatus,
     pub version: Uuid,
     pub vpn_status: VpnStatus,
     pub account_id: Option<AccountId>,
@@ -90,6 +96,7 @@ impl Status {
         let api_url = client_state.base_url();
         Self {
             version,
+            firewall_status: Default::default(),
             vpn_status,
             account_id: account_id.clone(),
             in_new_account_flow: *in_new_account_flow,
@@ -189,7 +196,7 @@ impl Manager {
             service_debug_bundles: Mutex::new(HashMap::new()),
         });
         tokio::spawn(Self::wireguard_key_registraction_task(this.clone(), ()));
-        tokio::spawn(Self::propagate_updates_to_status_task(this.clone(), ()));
+        tokio::spawn(Self::propagate_updates_to_status_task(this.clone(), os_impl.firewall_status()));
         tokio::spawn(Self::preferred_network_interface_task(this.clone(), network_interface));
         Ok(this)
     }
@@ -263,7 +270,7 @@ impl Manager {
         self.api_request(GoogleBillingDetails { promo_code }).await
     }
 
-    async fn propagate_updates_to_status_task(this: Arc<Self>, _: ()) {
+    async fn propagate_updates_to_status_task(this: Arc<Self>, mut firewall: Option<Receiver<crate::os::os_trait::FirewallStatus>>) {
         let mut tunnel_state_recv = this.tunnel_state.clone();
         let mut client_state_recv = this.client_state.subscribe();
         tunnel_state_recv.mark_changed();
@@ -271,6 +278,15 @@ impl Manager {
             let cont = select! {
                 res = tunnel_state_recv.changed() => res.is_ok(),
                 res = client_state_recv.changed() => res.is_ok(),
+                res = async {
+                    match &mut firewall {
+                        Some(receiver) => receiver.changed().await,
+                        None => std::future::pending().await,
+                    }
+                } => {
+                    if res.is_err() { firewall = None; }
+                    true
+                },
             };
             if !cont {
                 break;
@@ -279,6 +295,7 @@ impl Manager {
                 let vpn_status = VpnStatus::from_tunnel_state(&tunnel_state_recv.borrow_and_update());
                 let client_state = client_state_recv.borrow_and_update();
                 let mut new_status = Status::new(status.version, vpn_status, &client_state);
+                new_status.firewall_status = firewall.as_mut().map(|receiver| *receiver.borrow_and_update()).unwrap_or_default();
                 if new_status == *status {
                     return false;
                 }

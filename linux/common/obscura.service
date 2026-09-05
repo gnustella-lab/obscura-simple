@@ -1,10 +1,15 @@
 [Unit]
 Description=Obscura VPN
-After=network.target
+DefaultDependencies=no
+After=local-fs.target systemd-sysusers.service
+Before=network-pre.target shutdown.target
+Wants=network-pre.target
+Conflicts=shutdown.target
 StartLimitIntervalSec=0
 
 [Service]
 Type=notify
+TimeoutStartSec=infinity
 ExecStart=/usr/bin/obscura service
 FileDescriptorStoreMax=8
 Group=obscura

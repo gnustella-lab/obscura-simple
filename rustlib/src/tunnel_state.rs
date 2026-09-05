@@ -351,12 +351,15 @@ impl TunnelState {
                     network_interface: None,
                     dns_content_block: _,
                     use_system_dns: _,
-                    local_network_access: _,
-                    kill_switch: _,
+                    local_network_access,
+                    kill_switch,
                 } => {
                     tracing::warn!(message_id = "0K9Nep8g", "stuck in connecting state without target interface");
                     selection_state = ExitSelectionState::default();
                     tunnel_state.send_modify(|tunnel_state| tunnel_state.set_connect_error(TunnelConnectError::NoInternet));
+                    if *kill_switch && os_impl.unset_os_network_config(true, *local_network_access).await.is_err() {
+                        continue;
+                    }
                     // nothing to do until target args changes or a network device becomes available
                     poll_until_change(&mut client_state_watch, &target_state, pending::<Infallible>()).await;
                 }

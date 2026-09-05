@@ -6,7 +6,7 @@ A lightweight, intuitive HTML/CSS/JS replacement for the React/Mantine `obscura-
 
 - **Vanilla JS** (~28K `app.js` + ~6K `style.css` + ~12K `index.html`) – no Node dependencies at runtime
 - **Same Rust bridge** (`window.webkit.messageHandlers.commandBridge.postMessage`) as the original – uses `getOsStatus` long-poll, `jsonFfiCmd` for all `ManagerCmd` (login, status, exit list, DNS, etc.), `startTunnel`/`stopTunnel`
-- **Views:** Connection (quick connect, city select, progress, session), Location (search, pinned, last used, grouped by country), Account (status, copy/reveal, logout/delete), Settings (auto-connect, local network, DNS blocking, appearance, experimental kill switch), Help (debug bundle), About, Developer (5x click on the version in About)
+- **Views:** Connection (quick connect, city select, progress, session), Location (search, pinned, last used, grouped by country), Account (status, copy/reveal, logout/delete), Settings (auto-connect, local network, DNS blocking, appearance, kill switch), Help (debug bundle), About, Developer (5x click on the version in About)
 - **Navigation:** the backend `osStatus.navigationView` is the source of truth, like the React UI — the native left sidebar and the web top bar stay in sync via `setNavigationView` and the `getOsStatus` long-poll; `location.hash` (`#connection`, `#location`, etc.) is only a mirror for refresh/deep-link
 - **Dark theme** via `color-scheme: light dark` and the official robot logo (`simple-ui/logo.svg`) in the header, hero, and About views
 - **Account handling:** Verhoeff checksum (same as `accountUtils.ts`), `normalizeAccountId` strips dashes/spaces, `generateAccountNumber` via `crypto.getRandomValues`
@@ -51,9 +51,9 @@ A complete `.deb` with the simple UI, service auto-enabled and auto-started:
 # One command: builds gresources + release binaries + stages a proper Debian package
 ./contrib/bin/build-simple-deb.bash
 # or: ./simple-ui/build-deb.sh
-# outputs: ./obscura-simple_1.177-8_amd64.deb
+# outputs: ./obscura-simple_1.177-9_amd64.deb
 
-sudo apt install ./obscura-simple_1.177-8_amd64.deb
+sudo apt install ./obscura-simple_1.177-9_amd64.deb
 systemctl status obscura.service   # -> active (running)
 sudo obscura add-operator $USER    # add yourself to obscura group
 newgrp obscura                     # or logout/login
@@ -97,7 +97,7 @@ Common causes fixed by the new packages: missing `obscura` group (`sysusers`), n
 
 ## Releases
 
-Current package revision: `1.177-8`, producing `obscura-simple_1.177-8_amd64.deb`. Release assets are not committed. Versioning: `tag.json` tracks upstream (`1.177`); the `-N` suffix is the fork packaging revision.
+Current package revision: `1.177-9`, producing `obscura-simple_1.177-9_amd64.deb`. Release assets are not committed. Versioning: `tag.json` tracks upstream (`1.177`); the `-N` suffix is the fork packaging revision.
 
 ## Differences from React UI
 

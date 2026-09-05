@@ -1,6 +1,9 @@
+mod boot;
 pub mod dns;
 mod fd_store;
 pub mod ipc;
+#[cfg(test)]
+mod kill_switch_tests;
 mod netfilter;
 mod network_manager;
 pub mod routes;
@@ -20,10 +23,11 @@ use bytes::Bytes;
 use obscuravpn_client::manager_cmd::{ManagerCmd, ManagerCmdErrorCode, ManagerCmdOk, PeerUid};
 use obscuravpn_client::net::NetworkInterface;
 use obscuravpn_client::network_config::OsNetworkConfig;
-use obscuravpn_client::os::os_trait::Os;
+use obscuravpn_client::os::os_trait::{FirewallStatus, Os};
 use obscuravpn_client::quicwg::QuicWgConnPacketSender;
 pub use start_error::LinuxServiceStartError;
 use std::net::IpAddr;
+use std::path::Path;
 use tokio::sync::Mutex;
 use tokio::sync::watch::{Receiver, Sender};
 
@@ -44,6 +48,7 @@ fn disconnected_policy(kill_switch: bool, local_network_access: bool) -> Traffic
 pub struct LinuxOsImpl {
     tun: Tun,
     nft: Mutex<NftTable>,
+    firewall_status: Sender<FirewallStatus>,
     routing: Sender<TrafficPolicy>,
     preferred_network_interface: Receiver<Option<NetworkInterface>>,
     current_network_config: tokio::sync::Mutex<Result<Option<OsNetworkConfig>, ()>>,
@@ -53,16 +58,20 @@ pub struct LinuxOsImpl {
 }
 
 impl LinuxOsImpl {
-    pub async fn new(dns_manager_arg: DnsManagerArg) -> Result<Self, LinuxServiceStartError> {
+    pub async fn new(dns_manager_arg: DnsManagerArg, config_dir: &Path) -> Result<Self, LinuxServiceStartError> {
         let lock: ServiceLock = ServiceLock::new()?;
-        choose_dns_manager(dns_manager_arg)
-            .await
-            .map_err(|()| LinuxServiceStartError::NoDnsManager)?;
-        let ipc = ServiceIpc::new(&lock).await?;
 
         let mut fd_store = FdStore::take_from_systemd();
-        let nft = NftTable::create_or_adopt(&mut fd_store).map_err(|()| LinuxServiceStartError::NftablesSetup)?;
+        let mut nft = loop {
+            match NftTable::create_or_adopt(&mut fd_store) {
+                Ok(nft) => break nft,
+                Err(()) if matches!(boot::enabled(config_dir), Ok(false)) => return Err(LinuxServiceStartError::NftablesSetup),
+                Err(()) => tokio::time::sleep(std::time::Duration::from_secs(1)).await,
+            }
+        };
         fd_store.remove_unclaimed();
+        let firewall_status = boot::protect(&mut nft, config_dir).await;
+        let ipc = ServiceIpc::new(&lock).await?;
         let tun = Tun::create().map_err(|()| LinuxServiceStartError::TunSetup)?;
         let routing = spawn_route_enforcer(tun.interface()).await;
         let preferred_network_interface = watch_preferred_network_interface().await;
@@ -73,6 +82,7 @@ impl LinuxOsImpl {
             ipc,
             tun,
             nft: Mutex::new(nft),
+            firewall_status: tokio::sync::watch::channel(firewall_status).0,
             routing,
             preferred_network_interface,
             current_network_config: Ok(None).into(),
@@ -82,6 +92,18 @@ impl LinuxOsImpl {
 
     pub fn network_interface(&self) -> Receiver<Option<NetworkInterface>> {
         self.preferred_network_interface.clone()
+    }
+
+    async fn apply_firewall(&self, policy: TrafficPolicy, tun_name: &str) -> Result<(), ()> {
+        self.firewall_status.send_replace(FirewallStatus::Applying);
+        let blocking = matches!(policy, TrafficPolicy::Engage { .. });
+        let result = self.nft.lock().await.apply_ruleset(policy, tun_name).await;
+        self.firewall_status.send_replace(match result {
+            Ok(()) if blocking => FirewallStatus::Blocking,
+            Ok(()) => FirewallStatus::Inactive,
+            Err(()) => FirewallStatus::Failed,
+        });
+        result
     }
 }
 
@@ -104,12 +126,15 @@ mod tests {
 }
 
 impl Os for LinuxOsImpl {
+    fn firewall_status(&self) -> Option<Receiver<FirewallStatus>> {
+        Some(self.firewall_status.subscribe())
+    }
+
     async fn set_os_network_config(&self, network_config: OsNetworkConfig, tunnel: QuicWgConnPacketSender) -> Result<(), ()> {
         let mut current_network_config = self.current_network_config.lock().await;
         let tun = self.tun.interface();
 
         // Attempt all config steps regardless of individual failures to minimize leaks until intentionally disconnecting. E.g. DNS queries shouldn't leak because route setup failed.
-        let mut result = Ok(());
         let policy = TrafficPolicy::Engage {
             local_network_access: network_config.local_network_access,
             dns: if network_config.use_system_dns {
@@ -118,12 +143,14 @@ impl Os for LinuxOsImpl {
                 network_config.dns.clone()
             },
         };
+        let mut result = self.apply_firewall(policy.clone(), &tun.name).await;
         result = result.and(self.routing.send(policy.clone()).map_err(|error| {
             tracing::error!(message_id = "bK3wNr8T", ?error, "route enforcer is not running");
         }));
-        match choose_dns_manager(self.dns_manager_arg).await? {
-            DnsManager::NetworkManager => result = result.and(network_manager::set_dns(&tun, &network_config).await),
-            dns_manager => {
+        match choose_dns_manager(self.dns_manager_arg).await {
+            Err(()) => result = Err(()),
+            Ok(DnsManager::NetworkManager) => result = result.and(network_manager::set_dns(&tun, &network_config).await),
+            Ok(dns_manager) => {
                 if dns_manager.is_resolved() {
                     if network_config.use_system_dns {
                         result = result.and(resolved::reset_dns(&tun).await);
@@ -133,7 +160,6 @@ impl Os for LinuxOsImpl {
                 }
             }
         }
-        result = result.and(self.nft.lock().await.apply_ruleset(policy, &tun.name).await);
         result = result.and(self.tun.set_config(network_config.mtu, network_config.ipv4, network_config.ipv6));
         *current_network_config = result.map(|_| Some(network_config));
 
@@ -144,20 +170,20 @@ impl Os for LinuxOsImpl {
     async fn unset_os_network_config(&self, kill_switch: bool, local_network_access: bool) -> Result<(), ()> {
         let mut current_network_config = self.current_network_config.lock().await;
         let tun = self.tun.interface();
-        let mut result = Ok(());
         let policy = disconnected_policy(kill_switch, local_network_access);
+        let mut result = self.apply_firewall(policy.clone(), &tun.name).await;
         result = result.and(self.routing.send(policy.clone()).map_err(|error| {
             tracing::error!(message_id = "fZ8pQm2W", ?error, "route enforcer is not running");
         }));
-        match choose_dns_manager(self.dns_manager_arg).await? {
-            DnsManager::NetworkManager => result = result.and(network_manager::reset_dns(&tun).await),
-            dns_manager => {
+        match choose_dns_manager(self.dns_manager_arg).await {
+            Err(()) => result = Err(()),
+            Ok(DnsManager::NetworkManager) => result = result.and(network_manager::reset_dns(&tun).await),
+            Ok(dns_manager) => {
                 if dns_manager.is_resolved() {
                     result = result.and(resolved::reset_dns(&tun).await);
                 }
             }
         }
-        result = result.and(self.nft.lock().await.apply_ruleset(policy, &tun.name).await);
         *current_network_config = result.map(|_| None);
         result
     }

@@ -14,7 +14,7 @@ use obscuravpn_client::tokio::AbortOnDrop;
 use std::time::Duration;
 
 const TUN_MIN_LOG_SILENCE: Duration = Duration::from_secs(5);
-const TUN_NAME: &str = "obscuravpn";
+pub(super) const TUN_NAME: &str = "obscuravpn";
 
 pub struct Tun {
     dev: Arc<tun_rs::AsyncDevice>,

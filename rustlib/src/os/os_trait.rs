@@ -5,7 +5,21 @@ use std::future::pending;
 use std::sync::Arc;
 use tokio::sync::RwLock;
 
+#[derive(Debug, Default, Clone, Copy, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub enum FirewallStatus {
+    #[default]
+    Unknown,
+    Applying,
+    Blocking,
+    Inactive,
+    Failed,
+}
+
 pub trait Os: Sync + Send + 'static {
+    fn firewall_status(&self) -> Option<tokio::sync::watch::Receiver<FirewallStatus>> {
+        None
+    }
     /// Set the network state. Returning `Ok()` implies that the OS will route traffic to the tunnel. May be called repeatedly before the tunnel is functional or after the tunnel started relaying traffic to reflect changing IP Address or DNS configuration. Regardless of errors that may occur, the implementation should set up as much routing/filtering as possible to avoid leaking traffic.
     /// Will not be called concurrently with itself or `unset_os_network_config`.
     // TODO: Consider moving this to its own trait with `&mut` receiver and remove sentence above.
@@ -37,6 +51,10 @@ impl<O: Os> RevocableOs<O> {
 }
 
 impl<O: Os> Os for RevocableOs<O> {
+    fn firewall_status(&self) -> Option<tokio::sync::watch::Receiver<FirewallStatus>> {
+        self.inner.try_read().ok()?.as_ref()?.firewall_status()
+    }
+
     async fn set_os_network_config(&self, network_config: OsNetworkConfig, tunnel: QuicWgConnPacketSender) -> Result<(), ()> {
         let os_impl_guard = self.inner.read().await;
         let Some(os_impl) = os_impl_guard.as_deref() else {

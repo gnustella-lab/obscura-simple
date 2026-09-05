@@ -40,7 +40,7 @@ else
 fi
 VERSION="${VERSION#v}"
 VERSION="${VERSION%%-*}"
-DEB_VERSION="${VERSION}-8"
+DEB_VERSION="${VERSION}-9"
 if [ -z "$OUT" ]; then
   OUT="$REPO_ROOT/obscura-simple_${DEB_VERSION}_${ARCH}.deb"
 fi
@@ -56,8 +56,8 @@ ls -lh "$GRESOURCES_DIR"
 
 if [ -z "$NO_BUILD" ]; then
   echo "=== Building release binaries (simple-ui) ==="
-  OBSCURA_VERSION="v$VERSION" OBSCURA_GRESOURCES_DIR="$GRESOURCES_DIR" cargo build --manifest-path "$REPO_ROOT/rustlib/Cargo.toml" --release --locked --bin obscura
-  OBSCURA_VERSION="v$VERSION" OBSCURA_GRESOURCES_DIR="$GRESOURCES_DIR" cargo build --manifest-path "$REPO_ROOT/rustlib/Cargo.toml" --release --features gui --bin obscura-gui
+  OBSCURA_VERSION="v$DEB_VERSION" OBSCURA_GRESOURCES_DIR="$GRESOURCES_DIR" cargo build --manifest-path "$REPO_ROOT/rustlib/Cargo.toml" --release --locked --bin obscura
+  OBSCURA_VERSION="v$DEB_VERSION" OBSCURA_GRESOURCES_DIR="$GRESOURCES_DIR" cargo build --manifest-path "$REPO_ROOT/rustlib/Cargo.toml" --release --locked --features gui --bin obscura-gui
   echo "=== Binaries ==="
   ls -lh "$REPO_ROOT/rustlib/target/release/obscura" "$REPO_ROOT/rustlib/target/release/obscura-gui"
 else
@@ -105,7 +105,7 @@ mkdir -p "$STAGING/usr/share/doc/obscura-simple"
 cat > "$STAGING/usr/share/doc/obscura-simple/changelog.Debian" <<EOF
 obscura-simple (${DEB_VERSION}) stable; urgency=low
 
-  * Release ${VERSION} (simple-ui)
+  * Release ${DEB_VERSION}: promote the Linux kill switch and protect early boot traffic.
 
  -- Obscura Repository Signer <packages@obscura.com>  $(date -uR)
 EOF

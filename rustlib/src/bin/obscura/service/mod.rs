@@ -26,7 +26,7 @@ pub async fn run(
     let is_restart = detect_restart(args.runtime_dir.as_deref(), scm_start_reason);
 
     #[cfg(target_os = "linux")]
-    let os_impl = os::linux::LinuxOsImpl::new(args.dns).await?;
+    let os_impl = os::linux::LinuxOsImpl::new(args.dns, Path::new(&args.config_dir)).await?;
     #[cfg(target_os = "windows")]
     let os_impl = os::windows::WindowsOsImpl::new().await?;
 

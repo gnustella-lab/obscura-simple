@@ -203,16 +203,16 @@
             <button data-scheme="dark" class="btn small scheme-btn">Dark</button>
           </div>
         </div>
-        <div class="card" id="experimentalSettings">
+        <div class="card" id="killSwitchSettings">
           <div class="row gap">
-            <h3 class="flex-1">Experimental</h3>
-            <span class="badge warning">Experimental</span>
+            <h3 class="flex-1">Leak protection</h3>
           </div>
           <label class="switch">
             <input type="checkbox" id="toggleKillSwitch" />
             <span>Kill switch</span>
           </label>
-          <p class="small muted setting-description">Blocks internet traffic if the VPN connection drops unexpectedly, helping prevent traffic from leaking outside the tunnel.</p>
+          <p class="small muted setting-description">When enabled, blocks internet traffic outside VPN tunnels, including during startup and while disconnected. Local network access follows your settings.</p>
+          <p class="small muted" id="killSwitchStatus" role="status" aria-live="polite"></p>
         </div>
       </div>
     </section>
@@ -240,7 +240,7 @@
         <div class="card center">
           <div><img src="./logo.svg" class="about-logo" width="64" height="64" alt="Obscura" /></div>
           <h2>Obscura VPN</h2>
-          <p class="muted" id="aboutVersion">v1.177</p>
+          <p class="muted" id="aboutVersion">v1.177-9</p>
           <p class="small muted">© Sovereign Engineering Inc.</p>
           <div class="row center gap">
             <a href="https://obscura.com" target="_blank" class="btn small">Visit website</a>

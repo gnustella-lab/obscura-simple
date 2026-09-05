@@ -150,7 +150,7 @@ function render(){
   }
   appStatus = latestAppStatus(serviceStatus);
   if(!appStatus){ $("#splashDetail").textContent="Loading status..."; showView("splash"); return; }
-  $("#appVersion").textContent = osStatus.srcVersion || appStatus.version || "v1.177";
+  $("#appVersion").textContent = osStatus.srcVersion || appStatus.version || "v1.177-9";
   if(!appStatus.accountId || appStatus.inNewAccountFlow){ renderLogin(); showView("login"); return; }
   // Backend is the source of truth so the native left sidebar and the web
   // top bar stay in sync (same as React `<Routes location={osStatus.navigationView}>`).
@@ -185,7 +185,7 @@ function renderLogin(){
     $("#loginTitle").textContent="Welcome to Obscura"; $("#loginSubtitle").textContent="Create an account or sign in with your existing number.";
     $("#loginCreateBox").classList.remove("hidden"); $("#loginGeneratedBox").classList.add("hidden");
   }
-  $("#aboutVersion").textContent = osStatus?.srcVersion || "v1.177";
+  $("#aboutVersion").textContent = osStatus?.srcVersion || "v1.177-9";
 }
 function renderConnection(){
   const vpnStatus=appStatus.vpnStatus; const isConnected=vpnConnected(vpnStatus); const isConnecting=!!vpnStatus.connecting;
@@ -356,13 +356,23 @@ function renderAccount(){
   $("#manageTunnelsLink").href = `https://obscura.com/account/tunnels#account_id=${encodeURIComponent(raw)}`;
 }
 function paidUntil(info){ if(info.current_expiry) return new Date(info.current_expiry*1000); return new Date(Date.now()+30*86400000); }
+function firewallStatusText(status){
+  switch(status){
+    case "blocking": return "Firewall blocking traffic outside VPN tunnels. Local network exceptions follow your settings.";
+    case "inactive": return "Firewall block is not active.";
+    case "applying": return "Applying firewall rules…";
+    case "failed": return "Could not apply firewall rules. Protection is not confirmed.";
+    default: return "Firewall protection has not been confirmed.";
+  }
+}
 function renderSettings(){
   if(!appStatus) return;
   $("#toggleAutoConnect").checked = !!appStatus.autoConnect;
   $("#toggleLocalNetwork").checked = !!appStatus.localNetworkAccess;
   const killSwitchAvailable = (appStatus.featureFlagKeys || []).includes("killSwitch");
-  $("#experimentalSettings").classList.toggle("hidden", !killSwitchAvailable);
+  $("#killSwitchSettings").classList.toggle("hidden", !killSwitchAvailable);
   $("#toggleKillSwitch").checked = appStatus.featureFlags?.killSwitch === true;
+  $("#killSwitchStatus").textContent = firewallStatusText(appStatus.firewallStatus);
   $("#toggleLoginItem").checked = !!osStatus.loginItemStatus?.registered;
   const block=appStatus.dnsContentBlock || {};
   $$("#dnsBlockGrid input").forEach(cb=> cb.checked = !!block[cb.dataset.dns]);
@@ -441,7 +451,7 @@ document.addEventListener("DOMContentLoaded", ()=>{
   $("#toggleKillSwitch").onchange=async e=>{
     const enabled=e.target.checked;
     e.target.disabled=true;
-    try{ await ffi('setFeatureFlag',{flag:'killSwitch', active:enabled}); toast(enabled?"Kill switch enabled":"Kill switch disabled"); }
+    try{ await ffi('setFeatureFlag',{flag:'killSwitch', active:enabled}); toast("Kill switch preference saved"); }
     catch(err){ e.target.checked=!enabled; toast("Could not update kill switch: "+err.message); }
     finally{ e.target.disabled=false; }
   };

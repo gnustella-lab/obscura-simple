@@ -4,30 +4,34 @@
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <title>Obscura VPN</title>
+<script>if(window.obscuraNativeSidebar) document.documentElement.classList.add("native-shell");</script>
 <link rel="stylesheet" href="./style.css" />
 </head>
 <body>
+<div class="pixel-grid" id="pixelGrid" aria-hidden="true"></div>
 <div id="app">
-  <!-- Header -->
-  <header class="topbar">
-    <div class="brand">
-      <img src="./logo.svg" class="brand-logo" width="28" height="28" alt="Obscura" />
-      <span class="brand-name">Obscura VPN</span>
-      <span class="brand-version" id="appVersion"></span>
-    </div>
-    <div class="topbar-actions">
-      <button id="btnMinHelp" class="icon-btn" title="Help">?</button>
-    </div>
-  </header>
-
-  <!-- Navigation -->
-  <nav class="nav" id="nav">
-    <button data-view="connection" class="nav-btn active">Connection</button>
-    <button data-view="location" class="nav-btn">Location</button>
-    <button data-view="account" class="nav-btn">Account</button>
-    <button data-view="settings" class="nav-btn">Settings</button>
-    <button data-view="help" class="nav-btn">Help</button>
-    <button data-view="about" class="nav-btn">About</button>
+  <header class="topbar"><h1 id="pageTitle">Connection</h1></header>
+  <nav class="nav" id="nav" aria-label="Main navigation">
+    <div class="sidebar-brand"><img src="./assets/app-icon.png" width="24" height="24" alt="" /><span>Obscura VPN</span></div>
+    <button data-view="connection" class="nav-btn active"><span class="nav-icon" aria-hidden="true"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 960 960" focusable="false">
+  <path d="M480,880q-83,0 -156,-31.5t-127,-86q-54,-54.5 -85.5,-128T80,478q0,-83 31.5,-155.5T197,196q54,-54 127,-85t156,-31q26,0 50.5,4t49.5,9l-20,57q-20,-6 -40,-8t-40,-2q-42,35 -62,86t-34,104h196v60L373,390q-3,22 -4.5,44t-1.5,44q0,23 1.5,45.5T373,569h215q3,-23 4.5,-48t1.5,-61h60q0,36 -2,61t-4,48h160q6,-23 9,-47.5t3,-61.5h60q0,94 -31.5,171T763,763.5q-54,55.5 -127,86T480,880ZM152,569h159q-2,-23 -3,-45.5t-1,-45.5q0,-22 1,-44t4,-44L152,390q-6,22 -9,43.5t-3,44.5q0,23 3,45.5t9,45.5ZM395,810q-27,-42 -44.5,-87.5T322,629L172,629q35,66 93.5,111.5T395,810ZM172,330h151q10,-48 27.5,-93t43.5,-86q-73,18 -131,65t-91,114ZM480,822q38,-39 61,-89t36,-104L384,629q12,54 35,103.5t61,89.5ZM566,809q71,-22 129,-68t93,-112L639,629q-11,48 -28.5,93.5T566,809ZM674,400q-14,0 -24,-10t-10,-24v-132q0,-14 10,-24t24,-10h6v-40q0,-33 23.5,-56.5T760,80q33,0 56.5,23.5T840,160v40h6q14,0 24,10t10,24v132q0,14 -10,24t-24,10L674,400ZM720,200h80v-40q0,-17 -11.5,-28.5T760,120q-17,0 -28.5,11T720,158v42Z" fill="#222222" />
+</svg></span>Connection</button>
+    <button data-view="location" class="nav-btn"><span class="nav-icon" aria-hidden="true"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 960 960" focusable="false">
+  <path d="M480,880q-83,0 -156,-31.5T197,763q-54,-54 -85.5,-127T80,480q0,-83 31.5,-156T197,197q54,-54 127,-85.5T480,80q157,0 270.5,104.5T878,443q-14,-8 -30,-14t-33,-9q-15,-87 -70,-156T607,161v18q0,35 -24,61t-59,26h-87v87q0,17 -13.5,28T393,392h-83v88h258q15,0 26,11t13,26q-13,23 -20,48.5t-7,51.5q0,60 34,112t66,98q-45,26 -95,39.5T480,880ZM437,819v-82q-35,0 -59,-26t-24,-61v-44L149,401q-5,20 -7,39.5t-2,39.5q0,130 84.5,227T437,819ZM780,880q-4,0 -6.5,-2t-3.5,-5q-13,-38 -34.5,-70.5T689,739q-21,-26 -35,-57t-14,-65q0,-58 41,-99t99,-41q58,0 99,41t41,99q0,34 -14,65t-35,57q-24,31 -46,63.5T790,873q-1,3 -3.5,5t-6.5,2ZM780,797q14,-21 28.5,-41t30.5,-40q17,-22 29,-46.5t12,-52.5q0,-42 -29,-71t-71,-29q-42,0 -71,29t-29,71q0,28 12,52.5t29,46.5q16,20 30.5,40t28.5,41ZM780,667q-21,0 -35.5,-14.5T730,617q0,-21 14.5,-35.5T780,567q21,0 35.5,14.5T830,617q0,21 -14.5,35.5T780,667Z" fill="#222222" />
+</svg></span>Location</button>
+    <button data-view="account" class="nav-btn"><span class="nav-icon" aria-hidden="true"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 960 960" focusable="false">
+  <path d="M222,705q63,-44 125,-67.5T480,614q71,0 133.5,23.5T739,705q44,-54 62.5,-109T820,480q0,-145 -97.5,-242.5T480,140q-145,0 -242.5,97.5T140,480q0,61 19,116t63,109ZM479.81,510q-57.81,0 -97.31,-39.69 -39.5,-39.68 -39.5,-97.5 0,-57.81 39.69,-97.31 39.68,-39.5 97.5,-39.5 57.81,0 97.31,39.69 39.5,39.68 39.5,97.5 0,57.81 -39.69,97.31 -39.68,39.5 -97.5,39.5ZM480.47,880Q398,880 325,848.5t-127.5,-86q-54.5,-54.5 -86,-127.27Q80,562.47 80,479.73 80,397 111.5,324.5q31.5,-72.5 86,-127t127.27,-86q72.76,-31.5 155.5,-31.5 82.73,0 155.23,31.5 72.5,31.5 127,86t86,127.03q31.5,72.53 31.5,155T848.5,635q-31.5,73 -86,127.5t-127.03,86Q562.94,880 480.47,880ZM480,820q55,0 107.5,-16T691,748q-51,-36 -104,-55t-107,-19q-54,0 -107,19t-104,55q51,40 103.5,56T480,820ZM480,450q34,0 55.5,-21.5T557,373q0,-34 -21.5,-55.5T480,296q-34,0 -55.5,21.5T403,373q0,34 21.5,55.5T480,450ZM480,373ZM480,747Z" fill="#222222" />
+</svg></span>Account</button>
+    <button data-view="settings" class="nav-btn"><span class="nav-icon" aria-hidden="true"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 960 960" focusable="false">
+  <path d="m388,880 l-20,-126q-19,-7 -40,-19t-37,-25l-118,54 -93,-164 108,-79q-2,-9 -2.5,-20.5T185,480q0,-9 0.5,-20.5T188,439L80,360l93,-164 118,54q16,-13 37,-25t40,-18l20,-127h184l20,126q19,7 40.5,18.5T669,250l118,-54 93,164 -108,77q2,10 2.5,21.5t0.5,21.5q0,10 -0.5,21t-2.5,21l108,78 -93,164 -118,-54q-16,13 -36.5,25.5T592,754L572,880L388,880ZM436,820h88l14,-112q33,-8 62.5,-25t53.5,-41l106,46 40,-72 -94,-69q4,-17 6.5,-33.5T715,480q0,-17 -2,-33.5t-7,-33.5l94,-69 -40,-72 -106,46q-23,-26 -52,-43.5T538,252l-14,-112h-88l-14,112q-34,7 -63.5,24T306,318l-106,-46 -40,72 94,69q-4,17 -6.5,33.5T245,480q0,17 2.5,33.5T254,547l-94,69 40,72 106,-46q24,24 53.5,41t62.5,25l14,112ZM480,610q54,0 92,-38t38,-92q0,-54 -38,-92t-92,-38q-54,0 -92,38t-38,92q0,54 38,92t92,38ZM480,480Z" fill="#222222" />
+</svg></span>Settings</button>
+    <button data-view="help" class="nav-btn"><span class="nav-icon" aria-hidden="true"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 -960 960 960" focusable="false">
+  <path d="M511-258q11-11 11-27t-11-27q-11-11-27-11t-27 11q-11 11-11 27t11 27q11 11 27 11t27-11Zm-62-135h59q0-26 6.5-47.5T555-490q31-26 44-51t13-55q0-53-34.5-85T486-713q-49 0-86.5 24.5T345-621l53 20q11-28 33-43.5t52-15.5q34 0 55 18.5t21 47.5q0 22-13 41.5T508-512q-30 26-44.5 51.5T449-393Zm31 313q-82 0-155-31.5t-127.5-86Q143-252 111.5-325T80-480q0-83 31.5-156t86-127Q252-817 325-848.5T480-880q83 0 156 31.5T763-763q54 54 85.5 127T880-480q0 82-31.5 155T763-197.5q-54 54.5-127 86T480-80Zm0-60q142 0 241-99.5T820-480q0-142-99-241t-241-99q-141 0-240.5 99T140-480q0 141 99.5 240.5T480-140Zm0-340Z" fill="#222222" />
+</svg></span>Help</button>
+    <button data-view="about" class="nav-btn"><span class="nav-icon" aria-hidden="true"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 960 960" focusable="false">
+  <path d="M453,680h60v-240h-60v240ZM479.98,366q14.02,0 23.52,-9.2T513,334q0,-14.45 -9.48,-24.22 -9.48,-9.78 -23.5,-9.78t-23.52,9.78Q447,319.55 447,334q0,13.6 9.48,22.8 9.48,9.2 23.5,9.2ZM480.27,880q-82.74,0 -155.5,-31.5Q252,817 197.5,762.5t-86,-127.34Q80,562.32 80,479.5t31.5,-155.66Q143,251 197.5,197t127.34,-85.5Q397.68,80 480.5,80t155.66,31.5Q709,143 763,197t85.5,127Q880,397 880,479.73q0,82.74 -31.5,155.5Q817,708 763,762.32q-54,54.31 -127,86Q563,880 480.27,880ZM480.5,820Q622,820 721,720.5t99,-241Q820,338 721.19,239T480,140q-141,0 -240.5,98.81T140,480q0,141 99.5,240.5t241,99.5ZM480,480Z" fill="#222222" />
+</svg></span>About</button>
+    <div class="sidebar-footer"><span id="appVersion"></span></div>
   </nav>
 
   <!-- Main -->
@@ -51,7 +55,7 @@
           <button id="btnAddOperator" class="btn">Add permission</button>
         </div>
         <p class="muted small" id="degradedDetail"></p>
-        <p class="muted small" id="degradedHint">If stuck on "Service starting..." for more than ~30s, the service is likely crash-looping. Check: <code>journalctl -u obscura.service -n 50 --no-pager</code> — common cause is a missing <code>libtss2-tctildr0t64</code> (<code>sudo apt install libtss2-tctildr0t64</code>).</p>
+        <p class="muted small" id="degradedHint">If initialization does not finish, check the service logs: <code>journalctl -u obscura.service -n 50 --no-pager</code> — common cause is a missing <code>libtss2-tctildr0t64</code> (<code>sudo apt install libtss2-tctildr0t64</code>).</p>
       </div>
     </section>
 
@@ -92,55 +96,45 @@
 
     <!-- Connection -->
     <section id="view-connection" class="view hidden">
-      <div class="stack">
-        <div class="hero card">
-          <div class="hero-mascot"><img src="./logo.svg" class="hero-logo" width="64" height="64" alt="Obscura" /></div>
-          <h2 id="connTitle">Disconnected</h2>
+      <div class="connection-main">
+        <div class="hero">
+          <img src="./assets/not-connected-mascot.svg" id="connectionMascot" class="hero-logo" width="76" height="76" alt="" />
+          <h2 id="connTitle">Not connected to Obscura</h2>
           <p class="muted" id="connSubtitle">Connect to browse privately</p>
-          <div class="progress-track" id="progressTrack">
-            <div class="progress-step"><span class="dot"></span> Your device</div>
-            <div class="progress-line"></div>
-            <div class="progress-step"><span class="dot"></span> Obscura</div>
-            <div class="progress-line"></div>
-            <div class="progress-step"><span class="dot"></span> Relay</div>
-            <div class="progress-line"></div>
-            <div class="progress-step"><span class="dot"></span> Internet</div>
-          </div>
-          <div class="row center gap" id="connActions">
-            <button id="btnQuickConnect" class="btn primary large">Quick connect <svg class="inline-icon" width="15" height="15" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M13 2 4.5 13.5H11L9.5 22 19 10h-6.5L13 2z"/></svg></button>
+          <div id="connActions">
+            <button id="btnQuickConnect" class="btn primary large"><img class="quick-icon" src="./assets/bolt.badge.automatic.fill.svg" alt="" /> Quick Connect</button>
             <button id="btnCancelConnect" class="btn hidden">Cancel</button>
             <button id="btnDisconnect" class="btn danger hidden">Disconnect</button>
           </div>
         </div>
-
-        <div class="card">
-          <h3>Location</h3>
-          <div class="row gap">
-            <select id="citySelect" class="select flex-1"></select>
+        <div class="connection-choice">
+          <p class="or"><span>or connect to</span></p>
+          <div class="city-control">
+            <div class="city-picker"><span id="cityFlag" aria-hidden="true"></span><label class="sr-only" for="citySelect">VPN location</label><select id="citySelect" class="select"></select><span id="lastChosenBadge" class="last-chosen hidden">Last chosen</span></div>
             <button id="btnConnectCity" class="btn primary">Connect</button>
             <button id="btnDisconnectCity" class="btn hidden">Disconnect</button>
           </div>
           <p class="small muted" id="cityHint"></p>
-          <p class="small"><a href="https://obscura.com/check" target="_blank">Check my connection →</a></p>
         </div>
-
-        <div class="card" id="sessionCard" style="display:none">
-          <h4>Current session</h4>
-          <p class="small muted" id="sessionInfo"></p>
-        </div>
-
-        <div class="card pixel-card">
-          <div class="pixel-grid" id="pixelGrid" aria-hidden="true"></div>
-        </div>
+        <div id="sessionCard" class="session-card" style="display:none"><p class="small muted" id="sessionInfo"></p></div>
+      </div>
+      <div class="traffic-panel" id="trafficPanel" data-state="disconnected" role="status" aria-live="polite">
+        <div class="traffic-endpoint"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 4h14v12H5zM2 20h20M8 16v4m8-4v4"/></svg><span>Your device</span></div>
+        <div class="traffic-path"><div class="progress-track" id="progressTrack" aria-hidden="true"><span class="dot"></span><span class="progress-line"></span><span class="dot"></span><span class="progress-line"></span><span class="dot"></span><span class="progress-line"></span><span class="dot"></span></div><span id="trafficMessage">Protection not confirmed</span></div>
+        <div class="traffic-endpoint"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><ellipse cx="12" cy="12" rx="4" ry="9"/><path d="M3 12h18M5 6h14M5 18h14"/></svg><span>Internet</span></div>
       </div>
     </section>
 
     <!-- Location -->
     <section id="view-location" class="view hidden">
       <div class="stack">
-        <div class="card">
-          <h3 id="locationTitle">Choose location</h3>
-          <input id="locationSearch" type="search" placeholder="Search city or country..." />
+        <div class="location-banner" id="locationBanner" data-state="disconnected">
+          <span class="status-symbol" aria-hidden="true">!</span><div class="flex-1"><h2 id="locationConnectionTitle">Disconnected</h2><p id="locationConnectionDetail">Protection not confirmed</p></div>
+          <button id="btnLocationConnect" class="btn primary">ϟ Quick Connect</button>
+        </div>
+        <div class="location-search">
+          <label id="locationTitle" class="sr-only" for="locationSearch">Choose location</label>
+          <input id="locationSearch" type="search" placeholder="Search city or country…" />
           <div class="row gap small muted" id="locationStats"></div>
         </div>
         <div id="locationList" class="stack"></div>
@@ -149,24 +143,14 @@
 
     <!-- Account -->
     <section id="view-account" class="view hidden">
-      <div class="stack">
-        <div class="card" id="accountStatusCard"></div>
-        <div class="card">
-          <h3>Account number</h3>
-          <div class="row gap">
-            <code id="accountNumberDisplay" class="mono flex-1">••••</code>
-            <button id="btnToggleAccount" class="btn small">Show</button>
-            <button id="btnCopyAccount" class="btn small">Copy</button>
-          </div>
-          <div class="row gap" style="margin-top:12px">
-            <button id="btnLogout" class="btn">Log out</button>
-            <button id="btnDeleteAccount" class="btn danger">Delete account</button>
-          </div>
+      <div class="stack account-sections">
+        <div class="card account-status" id="accountStatusCard"></div>
+        <div class="card account-number-card">
+          <div class="row gap"><h2 class="flex-1">Account Number</h2><button id="btnToggleAccount" class="btn text small" aria-label="Show account number">Show</button><button id="btnCopyAccount" class="btn text small">Copy</button><button id="btnLogout" class="btn text danger">Log out</button></div>
+          <code id="accountNumberDisplay" class="mono">••••</code>
         </div>
-        <div class="card">
-          <h3>Settings</h3>
-          <a id="manageTunnelsLink" href="#" target="_blank" class="btn ghost">Manage WireGuard configurations →</a>
-        </div>
+        <div class="card configurations-card"><h2>WireGuard® Configurations</h2><a id="manageTunnelsLink" href="#" target="_blank" rel="noopener" class="btn primary">Manage Configurations ↗</a></div>
+        <details class="account-danger"><summary>Account deletion</summary><p class="muted small">Permanently delete this account.</p><button id="btnDeleteAccount" class="btn danger">Delete account</button></details>
       </div>
     </section>
 
@@ -175,10 +159,28 @@
       <div class="stack">
         <div class="card">
           <h3>General</h3>
-          <label class="switch"><input type="checkbox" id="toggleAutoConnect" /> <span>Auto-connect</span></label>
-          <label class="switch"><input type="checkbox" id="toggleLoginItem" /> <span>Open at startup</span></label>
-          <label class="switch"><input type="checkbox" id="toggleLocalNetwork" /> <span>Local network access</span></label>
-          <button id="btnRotateKey" class="btn small">Rotate WireGuard key</button>
+          <label class="switch"><input type="checkbox" id="toggleLoginItem" /> <span>Launch Obscura VPN at login</span></label>
+          <label class="switch"><input type="checkbox" id="toggleAutoConnect" /> <span>Automatically connect at launch</span></label>
+          <p class="setting-description muted">Connect to the last chosen location when Obscura starts. If you last used Quick Connect, Obscura will choose a location automatically.</p>
+        </div>
+        <div class="card" id="killSwitchSettings">
+          <h3>Network</h3>
+          <label class="switch">
+            <input type="checkbox" id="toggleKillSwitch" />
+            <span>Kill switch</span>
+          </label>
+          <p class="small muted setting-description">When enabled, blocks internet traffic outside VPN tunnels, including during startup and while disconnected. Local network access follows your settings.</p>
+          <p class="small muted" id="killSwitchStatus" role="status" aria-live="polite"></p>
+          <label class="switch"><input type="checkbox" id="toggleLocalNetwork" /><span>Allow local network access</span></label>
+          <button id="btnRotateKey" class="btn primary">Rotate WireGuard® key</button>
+        </div>
+        <div class="card">
+          <h3>Appearance</h3>
+          <div class="row gap">
+            <button data-scheme="auto" class="btn small scheme-btn">Auto</button>
+            <button data-scheme="light" class="btn small scheme-btn">Light</button>
+            <button data-scheme="dark" class="btn small scheme-btn">Dark</button>
+          </div>
         </div>
         <div class="card">
           <h3>DNS</h3>
@@ -195,25 +197,6 @@
             <label class="switch"><input type="checkbox" data-dns="socialMedia" /> Social media</label>
           </div>
         </div>
-        <div class="card">
-          <h3>Appearance</h3>
-          <div class="row gap">
-            <button data-scheme="auto" class="btn small scheme-btn">Auto</button>
-            <button data-scheme="light" class="btn small scheme-btn">Light</button>
-            <button data-scheme="dark" class="btn small scheme-btn">Dark</button>
-          </div>
-        </div>
-        <div class="card" id="killSwitchSettings">
-          <div class="row gap">
-            <h3 class="flex-1">Leak protection</h3>
-          </div>
-          <label class="switch">
-            <input type="checkbox" id="toggleKillSwitch" />
-            <span>Kill switch</span>
-          </label>
-          <p class="small muted setting-description">When enabled, blocks internet traffic outside VPN tunnels, including during startup and while disconnected. Local network access follows your settings.</p>
-          <p class="small muted" id="killSwitchStatus" role="status" aria-live="polite"></p>
-        </div>
       </div>
     </section>
 
@@ -221,15 +204,18 @@
     <section id="view-help" class="view hidden">
       <div class="stack">
         <div class="card">
-          <h3>Need help?</h3>
-          <p>Send an email to <a href="mailto:support@obscura.net">support@obscura.net</a></p>
-          <div class="field">
+          <img class="help-mascot" src="./assets/thinking-mascot.svg" width="100" height="138" alt="" />
+          <h2>Having trouble?</h2>
+          <p>Reach out to <a href="mailto:support@obscura.net">support@obscura.net</a></p>
+          <details class="feedback-details"><summary>Include a description of the problem</summary><div class="field">
             <label for="feedbackInput">Describe the problem (for debug bundle)</label>
             <textarea id="feedbackInput" rows="3" placeholder="What happened?"></textarea>
           </div>
-          <button id="btnDebugBundle" class="btn primary">Generate debug bundle</button>
+          </details><button id="btnDebugBundle" class="btn primary">Create Debugging Archive</button>
           <p class="small muted" id="debugPath"></p>
           <button id="btnRevealDebug" class="btn small hidden">Show file</button>
+          <h3 class="social-heading">Socials</h3><p class="muted">Connect with us via</p>
+          <div class="social-links"><a href="https://discord.gg/xsP2Fp7s6r" target="_blank" rel="noopener">Discord</a><a href="https://matrix.to/#/!CznDYbvmUUGxsJaWuW:matrix.social.obscuravpn.io?via=matrix.social.obscuravpn.io&amp;via=matrix.org" target="_blank" rel="noopener">[m] Matrix</a><a href="https://x.com/obscuravpn" target="_blank" rel="noopener" aria-label="Obscura on X">𝕏</a></div>
         </div>
       </div>
     </section>
@@ -238,19 +224,28 @@
     <section id="view-about" class="view hidden">
       <div class="stack">
         <div class="card center">
-          <div><img src="./logo.svg" class="about-logo" width="64" height="64" alt="Obscura" /></div>
-          <h2>Obscura VPN</h2>
-          <p class="muted" id="aboutVersion">v1.177-9</p>
-          <p class="small muted">© Sovereign Engineering Inc.</p>
+          <div><img src="./assets/app-icon.png" class="about-logo" width="96" height="96" alt="" /></div>
+          <h2 class="wordmark" aria-label="Obscura"><svg xmlns="http://www.w3.org/2000/svg" width="127" height="27" viewBox="0 0 127 27" fill="black" aria-hidden="true" focusable="false">
+<path fill-rule="evenodd" clip-rule="evenodd" d="M109.827 13.6818V8.66624L126.108 8.68357V27.0006H109.899V15.8486H120.936V13.6818H109.827ZM120.936 19.7778H115.071V22.0602H120.936V19.7778Z" />
+<path d="M100.336 26.9718H95.0489V8.68357H107.126V13.6818H100.336V26.9718Z" />
+<path d="M91.8708 27.0006H75.6625V8.68357H80.8341V22.0602H86.6992V8.68357H91.8708V27.0006Z" />
+<path d="M72.9756 26.9718H59.5698V8.68357H72.9756V13.6818H64.7414V22.0602H72.9756V26.9718Z" />
+<path d="M56.3628 27.0006H41.9747V22.0602H51.1045V19.72H41.9747V8.71246H56.3628V13.6818H47.233V15.9064H56.3628V27.0006Z" />
+<path fill-rule="evenodd" clip-rule="evenodd" d="M39.0855 27.0006H21.6927V0.333984H26.951V8.71246H39.0855V27.0006ZM26.951 13.6818V22.0602H33.9139V13.6818H26.951Z" />
+<path fill-rule="evenodd" clip-rule="evenodd" d="M0.890625 27.0006V8.71246H18.2835V27.0006H0.890625ZM6.14893 13.6818V22.0602H13.1118V13.6818H6.14893Z" />
+</svg></h2>
+          <p class="muted" id="aboutVersion">v1.177-10</p>
+          <a href="https://github.com/gnustella-lab/obscura-simple/releases/latest" target="_blank" rel="noopener" class="btn primary">Check for updates ↗</a>
+          <p class="about-copyright muted">© Sovereign Engineering Inc. All rights reserved.</p>
           <div class="row center gap">
-            <a href="https://obscura.com" target="_blank" class="btn small">Visit website</a>
-            <button id="btnLicenses" class="btn small ghost">Licenses</button>
+            <a href="https://obscura.com" target="_blank" class="text-link">Visit obscura.com</a>
+            <button id="btnLicenses" class="btn text small">Open Source Licenses</button><a href="https://obscura.com/legal" target="_blank" rel="noopener">Terms of Service and Privacy Policy</a>
           </div>
-          <p class="small muted" id="clickHint">click 5x on version for developer mode</p>
+          <p class="small muted">WireGuard® is a registered trademark of Jason A. Donenfeld.</p>
         </div>
         <div class="card" id="licensesCard" style="display:none">
           <h3>Licenses</h3>
-          <p class="small muted">Open-source components used.</p>
+          <p class="muted">Source and dependency information for this build.</p><p><a href="https://github.com/gnustella-lab/obscura-simple/blob/main/LICENSE.md" target="_blank" rel="noopener">Application license ↗</a></p><p><a href="https://github.com/gnustella-lab/obscura-simple/blob/main/rustlib/Cargo.toml" target="_blank" rel="noopener">Rust dependencies ↗</a></p><p><a href="https://github.com/gnustella-lab/obscura-simple/blob/main/obscura-ui/package.json" target="_blank" rel="noopener">UI dependencies ↗</a></p>
         </div>
       </div>
     </section>
@@ -269,7 +264,7 @@
         </div>
       </div>
     </section>
-  </div>
+  </main>
 </div>
 
 <div id="toast" class="toast hidden"></div>

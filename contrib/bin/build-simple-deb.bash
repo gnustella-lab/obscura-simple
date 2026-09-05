@@ -40,7 +40,7 @@ else
 fi
 VERSION="${VERSION#v}"
 VERSION="${VERSION%%-*}"
-DEB_VERSION="${VERSION}-9"
+DEB_VERSION="${VERSION}-10"
 if [ -z "$OUT" ]; then
   OUT="$REPO_ROOT/obscura-simple_${DEB_VERSION}_${ARCH}.deb"
 fi
@@ -105,7 +105,7 @@ mkdir -p "$STAGING/usr/share/doc/obscura-simple"
 cat > "$STAGING/usr/share/doc/obscura-simple/changelog.Debian" <<EOF
 obscura-simple (${DEB_VERSION}) stable; urgency=low
 
-  * Release ${DEB_VERSION}: promote the Linux kill switch and protect early boot traffic.
+  * Release ${DEB_VERSION}: refresh the Simple UI, animate the pixel background, and restore SVG flag styling.
 
  -- Obscura Repository Signer <packages@obscura.com>  $(date -uR)
 EOF

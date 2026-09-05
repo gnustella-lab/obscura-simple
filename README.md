@@ -12,15 +12,15 @@ Obscura VPN library, CLI client, and App — **simple HTML GUI edition** (see [`
 
 ## Releases
 
-Current package revision: `1.177-9` — ready-to-use `.deb` with the simple UI (`obscura-simple_1.177-9_amd64.deb`, ~24M).
+Current package revision: `1.177-10` — ready-to-use `.deb` with the simple UI (`obscura-simple_1.177-10_amd64.deb`, ~24M).
 
 ```bash
-sudo apt install ./obscura-simple_1.177-9_amd64.deb
+sudo apt install ./obscura-simple_1.177-10_amd64.deb
 systemctl status obscura.service   # -> active (running)
 sudo obscura add-operator $USER && newgrp obscura
 ```
 
-The `.deb` is published as a release asset (not committed to the repo). Versioning: `tag.json` tracks the upstream version (`1.177`); the `-N` suffix (`-9`) is the fork packaging revision (`v1.177-simple-N` tags). See all releases [here](https://github.com/gnustella-lab/obscura-simple/releases).
+The `.deb` is published as a release asset (not committed to the repo). Versioning: `tag.json` tracks the upstream version (`1.177`); the `-N` suffix (`-10`) is the fork packaging revision (`v1.177-simple-N` tags). See all releases [here](https://github.com/gnustella-lab/obscura-simple/releases).
 
 ## Support
 
@@ -62,7 +62,7 @@ python3 rustlib/gen-gresource-xml.py simple-ui /tmp/webui.generated.xml
 glib-compile-resources --target=/tmp/obscura-gresources/webui.gresource /tmp/webui.generated.xml
 
 # 2. Build
-OBSCURA_VERSION=v1.177 OBSCURA_GRESOURCES_DIR=/tmp/obscura-gresources cargo build --features gui --bin obscura-gui
+OBSCURA_VERSION=v1.177-10 OBSCURA_GRESOURCES_DIR=/tmp/obscura-gresources cargo build --features gui --bin obscura-gui
 
 # 3. Run (service must be running)
 WEBKIT_DISABLE_SANDBOX_THIS_IS_DANGEROUS=1 ./rustlib/target/debug/obscura-gui
@@ -109,8 +109,8 @@ Pass `--dirty` to build production packages from an untagged or modified tree.
 For a quick local `.deb` with the simple UI (without Docker/signing, ready-to-use):
 
 ```bash
-./contrib/bin/build-simple-deb.bash   # builds -> ./obscura-simple_1.177-9_amd64.deb
-sudo apt install ./obscura-simple_1.177-9_amd64.deb
+./contrib/bin/build-simple-deb.bash   # builds -> ./obscura-simple_1.177-10_amd64.deb
+sudo apt install ./obscura-simple_1.177-10_amd64.deb
 systemctl status obscura.service      # -> active (running)
 sudo obscura add-operator $USER && newgrp obscura
 ```

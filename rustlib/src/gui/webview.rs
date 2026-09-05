@@ -6,6 +6,7 @@ use webkit6::{
 };
 
 const JS_ERROR_CAPTURE: &str = r#"
+window.obscuraNativeSidebar = true;
 window.onerror = (message, source, lineno, colno, error) => {
     window.webkit.messageHandlers.errorBridge.postMessage(JSON.stringify({
       message: message,

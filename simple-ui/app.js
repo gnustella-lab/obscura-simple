@@ -30,11 +30,11 @@ function generateAccountNumber(){
 }
 let osStatus=null, appStatus=null, accountInfo=null, exitList=[], traffic=null;
 let osVersion=null, exitVersion=null, selectedCity=null, accountRevealed=false, devClicks=0;
-let expandedCountries=new Set();
 const $ = s=>document.querySelector(s);
 const $$ = s=>document.querySelectorAll(s);
-// Pixel footer: gray squares that fill orange bottom-up on VPN connect.
+// Background pixels fill orange bottom-up on VPN connect.
 let pixelCells=[], pixelFillOrder=[], pixelTimer=null, lastPixelState="";
+let pixelRequest=null;
 function pixelRand(seed){ let t=seed+0x6D2B79F5; return function(){ t=Math.imul(t^t>>>15,t|1); t^=t+Math.imul(t^t>>>7,t|61); return ((t^t>>>14)>>>0)/4294967296; }; }
 function buildPixelGrid(){
   const grid=$("#pixelGrid"); if(!grid || pixelCells.length) return;
@@ -59,10 +59,12 @@ function buildPixelGrid(){
   }
 }
 function pixelSetAll(on){ pixelCells.forEach(el=>{ if(!el.classList.contains("empty")) el.classList.toggle("on",on); }); }
-function renderPixelFooter(isConnected, isConnecting){
+function renderPixelBackground(isConnected, isConnecting){
   const state=isConnected?"connected":isConnecting?"connecting":"disconnected";
   if(state===lastPixelState) return;
+  const previousState=lastPixelState;
   lastPixelState=state;
+  if(state==="connected" && previousState==="connecting" && pixelTimer) return;
   if(pixelTimer){ clearInterval(pixelTimer); pixelTimer=null; }
   if(!pixelCells.length) return;
   const reduced=window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
@@ -72,15 +74,44 @@ function renderPixelFooter(isConnected, isConnecting){
   pixelSetAll(false);
   let idx=0;
   const step=Math.max(1, Math.ceil(pixelFillOrder.length/20));
-  pixelTimer=setInterval(()=>{
+  const fill=()=>{
     for(let k=0;k<step && idx<pixelFillOrder.length;k++,idx++) pixelFillOrder[idx].classList.add("on");
     if(idx>=pixelFillOrder.length){ clearInterval(pixelTimer); pixelTimer=null; }
-  },100);
+  };
+  pixelTimer=setInterval(fill,100);
+  fill();
+}
+function clearPixelRequest(){
+  if(pixelRequest) clearTimeout(pixelRequest.timer);
+  pixelRequest=null;
+}
+function syncPixelBackground(){
+  const status=osStatus?.serviceStatus?.healthy?.vpnStatus;
+  const connected=!!status?.connected, connecting=!!status?.connecting;
+  if(pixelRequest && (!status || (pixelRequest.connect ? connected || connecting : !connected && !connecting))) clearPixelRequest();
+  if(pixelRequest) renderPixelBackground(false,pixelRequest.connect);
+  else renderPixelBackground(connected,connecting);
+}
+async function requestTunnel(command,args={}){
+  clearPixelRequest();
+  const request={connect:command==='startTunnel',timer:null};
+  pixelRequest=request;
+  renderPixelBackground(false,request.connect);
+  request.timer=setTimeout(()=>{
+    if(pixelRequest!==request) return;
+    clearPixelRequest();
+    syncPixelBackground();
+  },10000);
+  try{ return await invoke(command,args); }
+  catch(error){
+    if(pixelRequest===request){ clearPixelRequest(); syncPixelBackground(); }
+    throw error;
+  }
 }
 function toast(msg, ms=3000){ const t=$("#toast"); t.textContent=msg; t.classList.remove("hidden"); setTimeout(()=>t.classList.add("hidden"), ms); }
 const VIEWS=["connection","location","account","settings","help","about","developer"];
 function isValidView(v){ return VIEWS.includes(v); }
-function setTopNavVisible(visible){ const nav=$("#nav"); if(nav) nav.style.display=visible?"":"none"; }
+function setTopNavVisible(visible){ document.body.classList.toggle("no-navigation",!visible); }
 function syncHashToView(name){
   if(!isValidView(name)) return;
   try{
@@ -90,7 +121,9 @@ function syncHashToView(name){
 function showViewLocal(name){
   $$(".view").forEach(v=>v.classList.add("hidden"));
   const el=$("#view-"+name); if(el) el.classList.remove("hidden");
-  $$(".nav-btn").forEach(b=>b.classList.toggle("active", b.dataset.view===name));
+  $$(".nav-btn").forEach(b=>{ const active=b.dataset.view===name; b.classList.toggle("active",active); if(active)b.setAttribute("aria-current","page");else b.removeAttribute("aria-current"); });
+  document.body.dataset.view=name;
+  $("#pageTitle").textContent=({connection:"Connection",location:"Location",account:"Account",settings:"Settings",help:"Help",about:"About",developer:"Developer",login:"Welcome",splash:"Obscura VPN",degraded:"Service unavailable"})[name] || "Obscura VPN";
 }
 function showView(name){
   showViewLocal(name);
@@ -123,11 +156,14 @@ function latestAppStatus(serviceStatus){
 }
 function vpnConnected(vpnStatus){ return !!vpnStatus?.connected; }
 function getCityFromStatus(vpnStatus){
+  const exit=vpnStatus?.connected?.exit;
+  if(exit?.country_code && exit?.city_code) return {country_code:exit.country_code,city_code:exit.city_code};
   const args = vpnStatus?.connected?.tunnelArgs ?? vpnStatus?.connecting?.tunnelArgs;
   if(args && args.exit && args.exit.city) return args.exit.city;
   return undefined;
 }
 function render(){
+  syncPixelBackground();
   if(!osStatus){ showView("splash"); return; }
   const serviceStatus=osStatus.serviceStatus;
   if(typeof serviceStatus === 'string' && serviceStatus==="initializing"){
@@ -138,7 +174,7 @@ function render(){
     let msg="Service degraded"; let detail=JSON.stringify(deg);
     if(typeof deg==="string"){
       if(deg==="unitInactive") msg="Service inactive";
-      else if(deg==="unitActivating"){ msg="Service starting..."; detail=`${JSON.stringify(deg)} — if stuck >30s, service is crash-looping. Run: journalctl -u obscura.service -n 50 --no-pager (common: missing libtss2-tctildr0t64)`; }
+      else if(deg==="unitActivating"){ msg="Service starting..."; detail="The service is initializing or retrying configuration. Check its logs if it does not become available."; }
       else if(deg==="unitNotInstalled") msg="Service not installed";
       else if(deg==="unknown") msg="Unknown error";
     } else if(deg.socketPermissionDenied){
@@ -150,7 +186,8 @@ function render(){
   }
   appStatus = latestAppStatus(serviceStatus);
   if(!appStatus){ $("#splashDetail").textContent="Loading status..."; showView("splash"); return; }
-  $("#appVersion").textContent = osStatus.srcVersion || appStatus.version || "v1.177-9";
+  $("#appVersion").textContent = osStatus.srcVersion || "v1.177-10";
+  $("#aboutVersion").textContent = osStatus.srcVersion || "v1.177-10";
   if(!appStatus.accountId || appStatus.inNewAccountFlow){ renderLogin(); showView("login"); return; }
   // Backend is the source of truth so the native left sidebar and the web
   // top bar stay in sync (same as React `<Routes location={osStatus.navigationView}>`).
@@ -185,17 +222,27 @@ function renderLogin(){
     $("#loginTitle").textContent="Welcome to Obscura"; $("#loginSubtitle").textContent="Create an account or sign in with your existing number.";
     $("#loginCreateBox").classList.remove("hidden"); $("#loginGeneratedBox").classList.add("hidden");
   }
-  $("#aboutVersion").textContent = osStatus?.srcVersion || "v1.177-9";
+  $("#aboutVersion").textContent = osStatus?.srcVersion || "v1.177-10";
 }
 function renderConnection(){
   const vpnStatus=appStatus.vpnStatus; const isConnected=vpnConnected(vpnStatus); const isConnecting=!!vpnStatus.connecting;
   const connectingCity=getCityFromStatus(vpnStatus); const lastCity = appStatus.lastChosenExit?.city; const targetCity = connectingCity || lastCity;
-  let title="Disconnected", subtitle="Connect to browse privately";
+  let title="Not connected to Obscura", subtitle=appStatus.firewallStatus==="blocking"?"Internet is blocked until you connect":"Connect to browse privately";
   if(!osStatus.internetAvailable){ title="No internet"; subtitle="Connect to the internet to use VPN"; }
-  else if(appStatus.account && !appStatus.account.account_info.active){ title="Account expired"; subtitle="Renew to continue"; }
-  else if(isConnected){ const exit=vpnStatus.connected.exit; title=`Connected to ${exit.city_name}`; subtitle=`${exit.country_code ? exit.country_code.toUpperCase() : ""} • ${exit.provider_id}`; }
+  else if(appStatus.account?.account_info?.active===false){ title="Account expired"; subtitle="Renew to continue"; }
+  else if(isConnected){ const exit=vpnStatus.connected.exit; title=`Connected to ${stripEmoji(exit.city_name)}`; subtitle=`${exit.country_code ? exit.country_code.toUpperCase() : ""} • ${exit.provider_id}`; }
   else if(isConnecting){ title= connectingCity ? `Connecting to ${connectingCity.city_code}` : "Connecting..."; subtitle="Establishing secure tunnel"; }
   $("#connTitle").textContent=title; $("#connSubtitle").textContent=subtitle;
+  $("#connectionMascot").src=isConnected?"./assets/connected-mascot.svg":"./assets/not-connected-mascot.svg";
+  const protection=connectionProtection(vpnStatus,appStatus.firewallStatus);
+  $("#trafficPanel").dataset.state=protection.state;
+  $("#trafficMessage").textContent=protection.detail;
+  $("#locationBanner").dataset.state=protection.state;
+  $("#locationConnectionTitle").textContent=protection.title;
+  $("#locationConnectionDetail").textContent=protection.detail;
+  $("#locationBanner .status-symbol").textContent=protection.state==="connected" || protection.state==="blocked"?"✓":"!";
+  $("#btnLocationConnect").innerHTML=isConnected?"Disconnect":isConnecting?"Cancel":'<img class="quick-icon" src="./assets/bolt.badge.automatic.fill.svg" alt="" /> Quick Connect';
+  $("#btnLocationConnect").disabled=!isConnected && !isConnecting && !osStatus.internetAvailable;
   const dots=$$("#progressTrack .dot"); const lines=$$("#progressTrack .progress-line");
   dots.forEach(d=>d.className="dot"); lines.forEach(l=>l.className="progress-line");
   if(isConnected){ dots.forEach(d=>d.classList.add("connected")); lines.forEach(l=>l.classList.add("active")); }
@@ -210,84 +257,96 @@ function renderConnection(){
     const og=document.createElement("optgroup"); og.label="Pinned";
     appStatus.pinnedLocations.forEach(p=>{
       const ex=exits.find(e=>e.city_code===p.city_code && e.country_code===p.country_code);
-      if(ex){ const o=document.createElement("option"); o.value=`${ex.country_code}:${ex.city_code}`; o.textContent=`${ex.city_name}, ${ex.country_code.toUpperCase()}`; og.appendChild(o); }
+      if(ex){ const o=document.createElement("option"); o.value=`${ex.country_code}:${ex.city_code}`; o.textContent=stripEmoji(ex.city_name); og.appendChild(o); }
     }); sel.appendChild(og);
   }
   const byCountry={}; exits.forEach(e=>{ if(!byCountry[e.country_code]) byCountry[e.country_code]=[]; byCountry[e.country_code].push(e); });
   Object.keys(byCountry).sort().forEach(cc=>{
-    const og=document.createElement("optgroup"); og.label=cc.toUpperCase();
+    const og=document.createElement("optgroup"); og.label=countryName(cc);
     byCountry[cc].sort((a,b)=>a.city_name.localeCompare(b.city_name)).forEach(e=>{
-      const o=document.createElement("option"); o.value=`${e.country_code}:${e.city_code}`; o.textContent=`${e.city_name} (${e.city_code})`; og.appendChild(o);
+      const o=document.createElement("option"); o.value=`${e.country_code}:${e.city_code}`; o.textContent=stripEmoji(e.city_name); og.appendChild(o);
     }); sel.appendChild(og);
   });
   if(prevVal && [...sel.options].some(o=>o.value===prevVal)) sel.value=prevVal;
   else if(targetCity) sel.value=`${targetCity.country_code}:${targetCity.city_code}`;
   else if(sel.options.length) sel.selectedIndex=0;
-  $("#cityHint").textContent = isConnected ? `Connected via ${vpnStatus.connected.exit.city_name}` : targetCity ? `Last: ${targetCity.city_code}` : "";
+  renderCityChoice();
+  $("#cityHint").textContent = isConnected ? `Connected via ${stripEmoji(vpnStatus.connected.exit.city_name)}` : "";
   if(isConnected && traffic){
     $("#sessionCard").style.display="block";
     const mins=Math.floor(traffic.connectedMs/60000);
     $("#sessionInfo").textContent=`Session: ${mins} min • ↓ ${(traffic.rxBytes/1024/1024).toFixed(1)} MB • ↑ ${(traffic.txBytes/1024/1024).toFixed(1)} MB • ping ${traffic.latestLatencyMs||"-"} ms`;
   } else { $("#sessionCard").style.display="none"; }
-  renderPixelFooter(isConnected, isConnecting);
+}
+function connectionProtection(status,firewall){
+  if(status?.connected) return {state:firewall==="blocking"?"connected":"unknown",title:"Connected",detail:firewall==="blocking"?"Traffic is protected":"VPN connected; firewall not confirmed"};
+  if(status?.connecting) return {state:"connecting",title:"Connecting…",detail:firewall==="blocking"?"Internet blocked while connecting":"Establishing VPN protection"};
+  if(firewall==="blocking") return {state:"blocked",title:"Disconnected",detail:"Internet blocked by kill switch"};
+  return {state:firewall==="inactive"?"disconnected":"unknown",title:"Disconnected",detail:firewall==="inactive"?"Traffic is vulnerable":"Protection not confirmed"};
+}
+function renderCityChoice(){
+  const value=$("#citySelect").value;
+  const exit=exitList.find(e=>`${e.country_code}:${e.city_code}`===value);
+  $("#cityFlag").innerHTML=exit?flagSvg(exit.country_code):"";
+  hydrateFlagImgs($("#cityFlag"));
+  const last=appStatus?.lastChosenExit?.city;
+  $("#lastChosenBadge").classList.toggle("hidden",!(exit && last && exit.city_code===last.city_code && exit.country_code===last.country_code));
+  $("#btnConnectCity").disabled=!exit || !osStatus?.internetAvailable;
+}
+function locationRegion(cc){
+  // Follow the upstream continent order, including its Mexico grouping.
+  const groups={
+    "North America":"US CA GL BM BZ CR SV GT HN NI PA CU DO HT JM PR BS BB TT",
+    "Europe":"AL AD AT BY BE BA BG HR CY CZ DK EE FI FR DE GR HU IS IE IT LV LI LT LU MT MD MC ME NL MK NO PL PT RO RU SM RS SK SI ES SE CH UA GB VA XK",
+    "South America":"MX AR BO BR CL CO EC PE PY UY VE GY SR GF",
+    "Asia":"AE AM AZ BD BH BN BT CN GE HK ID IL IN IQ IR JO JP KG KH KR KW KZ LA LB LK MM MN MO MY NP OM PH PK QA SA SG TH TJ TL TM TR TW UZ VN YE",
+    "Africa":"AO BF BI BJ BW CD CF CG CI CM CV DJ DZ EG ER ET GA GH GM GN GQ GW KE KM LR LS LY MA MG ML MR MU MW MZ NA NE NG RE RW SC SD SL SN SO SS ST SZ TD TG TN TZ UG YT ZA ZM ZW",
+    "Oceania":"AU NZ FJ PG NC PF WS TO VU GU SB FM KI MH NR PW TV",
+  };
+  return Object.keys(groups).find(name=>groups[name].split(" ").includes(cc.toUpperCase())) || countryName(cc);
 }
 function renderLocation(){
-  const query=$("#locationSearch").value.toLowerCase(); const list=$("#locationList"); list.innerHTML="";
-  const filtered=exitList.filter(e=> !query || e.city_name.toLowerCase().includes(query) || e.city_code.toLowerCase().includes(query) || e.country_code.toLowerCase().includes(query) || countryName(e.country_code).toLowerCase().includes(query));
-  $("#locationStats").textContent=`${filtered.length} locations • ${exitList.length} total`;
-  $("#locationTitle").textContent = query? `Results for "${query}"` : "Choose location";
-  const lastCity=appStatus?.lastChosenExit?.city;
-  const pinnedSet=new Set(appStatus.pinnedLocations.map(p=>`${p.country_code}:${p.city_code}`));
-  const connectedCity=getCityFromStatus(appStatus.vpnStatus);
-  const connectedKey=connectedCity? `${connectedCity.country_code}:${connectedCity.city_code}`: null;
-  function cardFor(exit){
-    const key=`${exit.country_code}:${exit.city_code}`; const isConnected=key===connectedKey; const isPinned=pinnedSet.has(key); const isLast=lastCity && `${lastCity.country_code}:${lastCity.city_code}`===key;
-    const div=document.createElement("div"); div.className="exit-card"+(isConnected?" connected":"");
-    div.innerHTML=`<div class="flag">${flagSvg(exit.country_code)}</div><div class="flex-1"><div style="font-weight:600">${exit.city_name} <span class="muted small">${exit.country_code.toUpperCase()}</span></div><div class="small muted">${exit.provider_id} • ${exit.city_code}</div></div><div style="display:flex;gap:6px;align-items:center">${isConnected?'<span class="badge success">Connected</span>':''}${isLast?'<span class="badge warning">Recent</span>':''}<button class="icon-btn pin-btn" title="${isPinned?'Unpin':'Pin'}">${pinSvg(isPinned)}</button></div>`;
-    hydrateFlagImgs(div);
-    div.addEventListener("click", (e)=>{
-      if(e.target.closest(".pin-btn")){ togglePin(exit, isPinned); e.stopPropagation(); return; }
-      connectCity(exit);
-    }); return div;
+  const query=$("#locationSearch").value.trim().toLowerCase();
+  const list=$("#locationList"); list.replaceChildren();
+  const filtered=exitList.filter(e=>!query || stripEmoji(e.city_name).toLowerCase().includes(query) || e.city_code.toLowerCase().includes(query) || e.country_code.toLowerCase().includes(query) || countryName(e.country_code).toLowerCase().includes(query));
+  $("#locationStats").textContent=`${filtered.length} locations`;
+  $("#locationTitle").textContent="Search locations";
+  const pins=appStatus?.pinnedLocations || [], last=appStatus?.lastChosenExit?.city;
+  const connected=appStatus?.vpnStatus?.connected ? getCityFromStatus(appStatus.vpnStatus) : undefined;
+  const key=e=>`${e.country_code}:${e.city_code}`;
+  const pinned=new Set(pins.map(key)), used=new Set();
+  function addHeading(text,lastUsed=false){const h=document.createElement("h4");h.textContent=text;h.className=lastUsed?"last-heading":"muted";list.appendChild(h);}
+  function addExit(exit){
+    used.add(key(exit));
+    const isPinned=pinned.has(key(exit)), isConnected=connected && key(connected)===key(exit);
+    const row=document.createElement("div");row.className="exit-card"+(isConnected?" connected":"");
+    row.innerHTML=`<button class="exit-connect" type="button"><span class="flag" aria-hidden="true">${flagSvg(exit.country_code)}</span><span class="flex-1"><span class="exit-name">${escHtml(stripEmoji(exit.city_name))}</span><span class="exit-country">${escHtml(countryName(exit.country_code))}${isConnected?" · Connected":""}</span></span></button><button class="icon-btn pin-btn" type="button" aria-pressed="${isPinned}" aria-label="${isPinned?"Unpin":"Pin"} ${escHtml(stripEmoji(exit.city_name))}">${pinSvg(isPinned)}</button>`;
+    row.querySelector(".exit-connect").onclick=()=>connectCity(exit);
+    row.querySelector(".pin-btn").onclick=()=>togglePin(exit,isPinned);
+    hydrateFlagImgs(row);list.appendChild(row);
   }
-  if(lastCity && !query){
-    const ex=exitList.find(e=>e.city_code===lastCity.city_code && e.country_code===lastCity.country_code);
-    if(ex){ const h=document.createElement("h4"); h.textContent="Last used"; h.className="muted small"; list.appendChild(h); list.appendChild(cardFor(ex)); }
+  if(!query){
+    const previous=last && filtered.find(e=>key(e)===key(last));
+    if(previous){addHeading("Last chosen",true);addExit(previous);}
+    const favorites=filtered.filter(e=>pinned.has(key(e)) && !used.has(key(e)));
+    if(favorites.length){addHeading("Pinned");favorites.forEach(addExit);}
   }
-  if(appStatus.pinnedLocations.length && !query){
-    const h=document.createElement("h4"); h.textContent="Pinned"; h.className="muted small"; list.appendChild(h);
-    appStatus.pinnedLocations.forEach(p=>{
-      const ex=filtered.find(e=>e.city_code===p.city_code && e.country_code===p.country_code);
-      if(ex) list.appendChild(cardFor(ex));
-    });
-  }
-  const byCountry={}; filtered.forEach(e=>{ if(!byCountry[e.country_code]) byCountry[e.country_code]=[]; byCountry[e.country_code].push(e); });
-  Object.keys(byCountry).sort((a,b)=> countryName(a).localeCompare(countryName(b))).forEach(cc=>{
-    const servers=byCountry[cc].sort((a,b)=>a.city_name.localeCompare(b.city_name));
-    const expanded=expandedCountries.has(cc);
-    const group=document.createElement("div"); group.className="country-group";
-    const header=document.createElement("button"); header.type="button"; header.className="country-header";
-    header.setAttribute("aria-expanded", expanded ? "true" : "false");
-    header.innerHTML=`<span class="flag">${flagSvg(cc)}</span><span class="country-name"></span><span class="count muted small">(${servers.length})</span><span class="chevron" aria-hidden="true">${chevronSvg()}</span>`;
-    hydrateFlagImgs(header);
-    header.querySelector(".country-name").textContent=countryName(cc);
-    const body=document.createElement("div"); body.className="country-servers"+(expanded?"":" hidden");
-    servers.forEach(e=> body.appendChild(cardFor(e)));
-    header.addEventListener("click", ()=>{
-      if(expandedCountries.has(cc)) expandedCountries.delete(cc); else expandedCountries.add(cc);
-      const isOpen=expandedCountries.has(cc);
-      header.setAttribute("aria-expanded", isOpen ? "true" : "false");
-      body.classList.toggle("hidden", !isOpen);
-    });
-    group.appendChild(header); group.appendChild(body); list.appendChild(group);
+  const order=["North America","Europe","South America","Asia","Africa","Oceania"];
+  const groups={};
+  filtered.filter(e=>!used.has(key(e))).forEach(e=>(groups[locationRegion(e.country_code)] ||= []).push(e));
+  Object.keys(groups).sort((a,b)=>(order.indexOf(a)<0?99:order.indexOf(a))-(order.indexOf(b)<0?99:order.indexOf(b)) || a.localeCompare(b)).forEach(region=>{
+    addHeading(region);groups[region].sort((a,b)=>countryName(a.country_code).localeCompare(countryName(b.country_code)) || stripEmoji(a.city_name).localeCompare(stripEmoji(b.city_name))).forEach(addExit);
   });
-  if(filtered.length===0){
-    const d=document.createElement("div"); d.className="card"; d.textContent="No results. Try another term or refresh the list.";
-    const btn=document.createElement("button"); btn.className="btn small"; btn.textContent="Refresh list"; btn.onclick=()=> ffi('refreshExitList',{freshness:0});
-    d.appendChild(document.createElement("br")); d.appendChild(btn); list.appendChild(d);
+  if(!filtered.length){
+    const empty=document.createElement("div");empty.className="card";empty.textContent="No locations found. Try another search or refresh the list.";
+    const button=document.createElement("button");button.className="btn small";button.textContent="Refresh list";button.onclick=()=>ffi('refreshExitList',{freshness:0}).catch(e=>toast(e.message));empty.appendChild(document.createElement("br"));empty.appendChild(button);list.appendChild(empty);
   }
 }
 function escHtml(s){ return String(s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;"); }
+// Native <select>/<option> is text-only: no image or SVG can render there.
+// Strip any emoji/regional indicators from backend-provided names so the
+// Location picker only shows clean text (full country names as headers).
+function stripEmoji(s){ return String(s ?? "").replace(/[\u{1F1E6}-\u{1F1FF}\u{1F300}-\u{1FAFF}\u{2600}-\u{27BF}\u{2B00}-\u{2BFF}\u{FE0F}]/gu,"").replace(/\s{2,}/g," ").trim(); }
 function flagBadge(cc){ const code=((cc||"?").toString().toUpperCase().slice(0,2)); return `<span class="flag-badge" aria-hidden="true">${escHtml(code)}</span>`; }
 function flagSvg(cc){
   if(!cc || !/^[a-zA-Z]{2}$/.test(cc)) return flagBadge(cc);
@@ -300,9 +359,6 @@ function hydrateFlagImgs(root){
       s.textContent=(img.getAttribute("data-cc")||"?").toUpperCase(); img.replaceWith(s);
     }, {once:true});
   });
-}
-function chevronSvg(){
-  return `<svg class="chevron-svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m9 6 6 6-6 6"/></svg>`;
 }
 function smallCheckSvg(){
   return `<svg class="inline-icon" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m5 13 4 4L19 7"/></svg>`;
@@ -320,13 +376,7 @@ function countryName(cc){
   return cc.toUpperCase();
 }
 function pinSvg(pinned){
-  return `<svg width="16" height="16" viewBox="0 0 24 24" fill="${pinned?'currentColor':'none'}" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 21s-7-5.5-7-11a7 7 0 0 1 14 0c0 5.5-7 11-7 11z"/><circle cx="12" cy="10" r="2.5"/></svg>`;
-}
-function cardSvg(){
-  return `<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="2" y="5" width="20" height="14" rx="2"/><line x1="2" y1="10" x2="22" y2="10"/></svg>`;
-}
-function checkSvg(){
-  return `<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="m8.5 12.5 2.5 2.5 4.5-5.5"/></svg>`;
+  return `<svg width="16" height="16" viewBox="0 0 24 24" fill="${pinned?'currentColor':'none'}" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 3h8l-1 6 3 4v2H6v-2l3-4-1-6z"/><path d="M12 15v7"/></svg>`;
 }
 async function togglePin(exit, isPinned){
   let pins=[...appStatus.pinnedLocations]; const key=`${exit.country_code}:${exit.city_code}`;
@@ -336,26 +386,32 @@ async function togglePin(exit, isPinned){
 }
 async function connectCity(exit){
   const sel={city:{country_code:exit.country_code, city_code:exit.city_code}};
-  try{ toast(`Connecting to ${exit.city_name}...`); await invoke('startTunnel',{tunnelArgs:JSON.stringify({exit:sel})}); }catch(e){ toast("Error: "+e.message); }
+  try{ toast(`Connecting to ${exit.city_name}...`); await requestTunnel('startTunnel',{tunnelArgs:JSON.stringify({exit:sel})}); }catch(e){ toast("Error: "+e.message); }
 }
 function renderAccount(){
-  const card=$("#accountStatusCard"); const info=accountInfo; let html="";
-  if(!info){ html=`<h3>Status unavailable</h3><p class="muted">Could not load account data.</p><button class="btn small" onclick="pollAccountNow()">Refresh</button>`; }
-  else if(!info.active){ html=`<div class="row gap"><span style="font-size:24px;display:inline-flex">${cardSvg()}</span><div><h3>Account expired</h3><p class="muted">Top up to reactivate.</p></div><span class="badge danger">Expired</span></div><button class="btn small" onclick="pollAccountNow()">Refresh</button>`; }
-  else {
-    const expiry=paidUntil(info); const isRenewing=!!(info.stripe_subscription || info.apple_subscription || info.google_subscription);
-    const daysLeft=Math.floor((expiry - Date.now())/86400000); let heading="Active", badge="success", sub=`Expires on ${expiry.toLocaleDateString()}`;
-    if(isRenewing) { heading="Subscription active"; sub=`Renews on ${expiry.toLocaleDateString()} • ${daysLeft} days`; }
-    else if(daysLeft<3){ heading="Expires soon"; badge="danger"; sub=`${daysLeft} days remaining`; }
-    else if(daysLeft<10){ heading="Expires soon"; badge="warning"; }
-    html=`<div class="row gap"><span style="font-size:24px;display:inline-flex">${checkSvg()}</span><div><h3>${heading}</h3><p class="muted">${sub}</p></div><span class="badge ${badge}">${daysLeft}d</span></div><div class="row gap" style="margin-top:10px"><button class="btn small" onclick="pollAccountNow()">Refresh</button><a class="btn small primary" href="https://obscura.com/pay#account_id=${encodeURIComponent(appStatus.accountId)}" target="_blank">Manage payment</a></div>`;
+  const card=$("#accountStatusCard"), info=accountInfo;
+  let heading="Status unavailable", detail="Refresh to load your subscription.", icon="account-expired.svg";
+  if(info){
+    if(!info.active){heading="Account expired";detail="Top up to reactivate your account.";}
+    else{
+      icon="paid-up.svg";
+      const expiry=Number(info.current_expiry), renewing=!!(info.stripe_subscription || info.apple_subscription || info.google_subscription);
+      heading=renewing?"Subscription active":"Paid Up";
+      detail=Number.isFinite(expiry) && expiry>0?`${renewing?"Renews":"Expires"} on ${new Date(expiry*1000).toLocaleDateString()}.`:"Your account is active.";
+    }
   }
-  card.innerHTML=html;
-  const display=$("#accountNumberDisplay"); const raw=appStatus.accountId || "";
-  display.textContent = accountRevealed ? formatPartial(raw) : "•••• - •••• - •••• - •••• - ••••";
-  $("#manageTunnelsLink").href = `https://obscura.com/account/tunnels#account_id=${encodeURIComponent(raw)}`;
+  card.innerHTML=`<img class="account-status-icon" src="./assets/${icon}" alt="" /><div class="account-status-copy"><h2>${heading}</h2><p>${escHtml(detail)}</p></div><div class="account-status-actions"><button class="btn text small" onclick="pollAccountNow()">↻ Refresh</button><a class="btn primary" href="https://obscura.com/pay#account_id=${encodeURIComponent(appStatus.accountId)}" target="_blank" rel="noopener">Manage Payments ↗</a></div>`;
+  $("#accountNumberDisplay").textContent=accountRevealed?formatPartial(appStatus.accountId || ""):"XXXX – XXXX – XXXX – XXXX – XXXX";
+  $("#btnToggleAccount").textContent=accountRevealed?"Hide":"Show";
+  $("#btnToggleAccount").setAttribute("aria-label",accountRevealed?"Hide account number":"Show account number");
+  $("#manageTunnelsLink").href=`https://obscura.com/account/tunnels#account_id=${encodeURIComponent(appStatus.accountId)}`;
 }
-function paidUntil(info){ if(info.current_expiry) return new Date(info.current_expiry*1000); return new Date(Date.now()+30*86400000); }
+function applyLocalColorScheme(value){
+  if(value==="auto") document.documentElement.removeAttribute("data-theme");
+  else document.documentElement.dataset.theme=value;
+  $$(".scheme-btn").forEach(button=>{const active=button.dataset.scheme===value;button.classList.toggle("active",active);button.setAttribute("aria-pressed",String(active));});
+  try{localStorage.setItem("obscura-color-scheme",value);}catch{}
+}
 function firewallStatusText(status){
   switch(status){
     case "blocking": return "Firewall blocking traffic outside VPN tunnels. Local network exceptions follow your settings.";
@@ -381,6 +437,8 @@ function renderSettings(){
 }
 document.addEventListener("DOMContentLoaded", ()=>{
   buildPixelGrid();
+  let scheme="auto";try{scheme=localStorage.getItem("obscura-color-scheme") || "auto";}catch{}
+  applyLocalColorScheme(["auto","light","dark"].includes(scheme)?scheme:"auto");
   $("#nav").addEventListener("click", e=>{ const btn=e.target.closest(".nav-btn"); if(btn) requestNavigation(btn.dataset.view); });
   // Back/forward or manual hash edit: push to backend, let long-poll confirm.
   // Own syncHashToView uses replaceState so it does not fire this.
@@ -389,14 +447,19 @@ document.addEventListener("DOMContentLoaded", ()=>{
     const h=location.hash.replace("#","");
     if(isValidView(h) && h!==osStatus.navigationView) requestNavigation(h);
   });
-  $("#btnMinHelp").onclick=()=> requestNavigation("help");
+  $("#citySelect").onchange=renderCityChoice;
+  $("#btnLocationConnect").onclick=()=>{
+    const status=appStatus?.vpnStatus;
+    const stop=!!(status?.connected || status?.connecting);
+    requestTunnel(stop?'stopTunnel':'startTunnel',stop?{}:{tunnelArgs:JSON.stringify({exit:{any:{}}})}).catch(e=>toast(e.message));
+  };
   $("#btnRestartService").onclick=async()=>{
     try{ await invoke('restartService',{enable:true}); toast("Restart requested, waiting for service..."); }
     catch(e){
       const raw = e.message || String(e);
       let hint = raw;
       if(raw.includes("serviceEnableAndRestartFailed")) hint = "Enable+restart failed (auth dismissed? pkexec missing?). Try in terminal: sudo systemctl enable --now obscura.service";
-      else if(raw.includes("serviceStartTimeout")) hint = "Service did not become active in 10s — likely crash-loop. Run: journalctl -u obscura.service -n 50 --no-pager";
+      else if(raw.includes("serviceStartTimeout")) hint = "Service initialization is still pending. Check: journalctl -u obscura.service -n 50 --no-pager";
       else if(raw.includes("serviceStartFailed")) hint = "Service entered failed state. Run: journalctl -u obscura.service -n 50 --no-pager";
       toast(hint, 6000);
     }
@@ -422,24 +485,23 @@ document.addEventListener("DOMContentLoaded", ()=>{
   $("#btnCopyGenerated").onclick=()=>{ navigator.clipboard.writeText(window._generatedAccount||""); toast("Copied!"); $("#btnCopyGenerated").innerHTML=`Copied ${smallCheckSvg()}`; };
   $("#btnDoneGenerated").onclick=async()=>{ try{ await ffi('setInNewAccountFlow',{value:false}); window._generatedAccount=null; toast("Done!"); render(); }catch(e){ toast(e.message); } };
   $("#btnWantExisting").onclick=async()=>{ try{ await ffi('logout'); await ffi('setInNewAccountFlow',{value:false}); window._generatedAccount=null; render(); }catch(e){ toast(e.message); } };
-  $("#btnQuickConnect").onclick=()=> invoke('startTunnel',{tunnelArgs:JSON.stringify({exit:{any:{}}})}).catch(e=>toast(e.message));
-  $("#btnCancelConnect").onclick=()=> invoke('stopTunnel').catch(e=>toast(e.message));
-  $("#btnDisconnect").onclick=()=> invoke('stopTunnel').catch(e=>toast(e.message));
-  $("#btnDisconnectCity").onclick=()=> invoke('stopTunnel').catch(e=>toast(e.message));
+  $("#btnQuickConnect").onclick=()=> requestTunnel('startTunnel',{tunnelArgs:JSON.stringify({exit:{any:{}}})}).catch(e=>toast(e.message));
+  $("#btnCancelConnect").onclick=()=> requestTunnel('stopTunnel').catch(e=>toast(e.message));
+  $("#btnDisconnect").onclick=()=> requestTunnel('stopTunnel').catch(e=>toast(e.message));
+  $("#btnDisconnectCity").onclick=()=> requestTunnel('stopTunnel').catch(e=>toast(e.message));
   $("#btnConnectCity").onclick=()=>{
     const val=$("#citySelect").value; if(!val) return; const [country_code,city_code]=val.split(":");
-    invoke('startTunnel',{tunnelArgs:JSON.stringify({exit:{city:{country_code,city_code}}})}).catch(e=>toast(e.message));
+    requestTunnel('startTunnel',{tunnelArgs:JSON.stringify({exit:{city:{country_code,city_code}}})}).catch(e=>toast(e.message));
   };
   $("#locationSearch").addEventListener("input", renderLocation);
   $("#btnToggleAccount").onclick=()=>{
     accountRevealed=!accountRevealed;
-    $("#accountNumberDisplay").textContent = accountRevealed ? formatPartial(appStatus.accountId) : "•••• - •••• - •••• - •••• - ••••";
-    $("#btnToggleAccount").textContent = accountRevealed ? "Hide" : "Show";
+    renderAccount();
   };
   $("#btnCopyAccount").onclick=()=>{ navigator.clipboard.writeText(appStatus.accountId); toast("Copied"); };
   $("#btnLogout").onclick=async()=>{
     if(!confirm("Log out?")) return;
-    try{ await invoke('stopTunnel'); }catch(e){}
+    try{ await requestTunnel('stopTunnel'); }catch(e){}
     try{ await ffi('logout'); toast("Logged out"); }catch(e){ toast(e.message); }
   };
   $("#btnDeleteAccount").onclick=async()=>{
@@ -465,16 +527,16 @@ document.addEventListener("DOMContentLoaded", ()=>{
   });
   $$('input[name="dnsMode"]').forEach(r=> r.onchange=e=>{ if(e.target.checked) ffi('setUseSystemDns',{enable:e.target.value==="system"}).catch(err=>toast(err.message)); });
   $("#btnRotateKey").onclick=()=> ffi('rotateWgKey').then(()=>toast("Key rotated")).catch(e=>toast(e.message));
-  $$(".scheme-btn").forEach(b=> b.onclick=()=> invoke('setColorScheme',{value:b.dataset.scheme}).then(()=>toast(b.dataset.scheme)).catch(e=>toast(e.message)));
+  $$(".scheme-btn").forEach(b=> b.onclick=async()=>{try{await invoke('setColorScheme',{value:b.dataset.scheme});applyLocalColorScheme(b.dataset.scheme);}catch(e){toast(e.message);}});
   $("#btnDebugBundle").onclick=async()=>{
-    const fb=$("#feedbackInput").value; if(!fb) return toast("Describe the problem");
+    const fb=$("#feedbackInput").value.trim() || "Debug archive requested from Help";
     try{
       $("#btnDebugBundle").disabled=true; $("#btnDebugBundle").textContent="Generating...";
       const path=await invoke('debugBundle',{userFeedback:fb});
       $("#debugPath").textContent=path; $("#btnRevealDebug").classList.remove("hidden");
       $("#btnRevealDebug").onclick=()=> invoke('revealItemInDir',{path}).catch(e=>toast(e.message));
       toast("Bundle generated");
-    }catch(e){ toast(e.message); } finally{ $("#btnDebugBundle").disabled=false; $("#btnDebugBundle").textContent="Generate debug bundle"; }
+    }catch(e){ toast(e.message); } finally{ $("#btnDebugBundle").disabled=false; $("#btnDebugBundle").textContent="Create Debugging Archive"; }
   };
   $("#aboutVersion").addEventListener("click", ()=>{ devClicks++; if(devClicks>=5){ requestNavigation("developer"); devClicks=0; } });
   $("#btnLicenses").onclick=()=>{

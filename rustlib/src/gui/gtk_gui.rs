@@ -260,13 +260,18 @@ fn build_primary_window(gtk_init: GtkInitToken, command_context: WebviewCmdConte
     let window = gtk::ApplicationWindow::builder()
         .title("Obscura VPN")
         .hide_on_close(true)
-        .default_width(800)
-        .default_height(600)
+        .default_width(900)
+        .default_height(650)
         .build();
 
     let display = gdk::Display::default().expect("Could not get default display");
     let icon_theme = gtk::IconTheme::for_display(&display);
     icon_theme.add_resource_path("/com/obscura/vpn/icons/icons");
+
+    let sidebar_style = gtk::CssProvider::new();
+    update_sidebar_style(&sidebar_style, StyleManager::default().is_dark());
+    gtk::style_context_add_provider_for_display(&display, &sidebar_style, gtk::STYLE_PROVIDER_PRIORITY_APPLICATION);
+    StyleManager::default().connect_dark_notify(move |manager| update_sidebar_style(&sidebar_style, manager.is_dark()));
 
     let dev_visible = Rc::new(Cell::new(false));
 
@@ -303,10 +308,26 @@ fn build_primary_window(gtk_init: GtkInitToken, command_context: WebviewCmdConte
     (window, sidebar, webview)
 }
 
+fn update_sidebar_style(provider: &gtk::CssProvider, dark: bool) {
+    let (background, foreground, border) = if dark {
+        ("#383838", "#dedede", "#535353")
+    } else {
+        ("#eaeaea", "#303030", "#d0d0d0")
+    };
+    provider.load_from_data(&format!(
+        ".obscura-sidebar {{ background: {background}; color: {foreground}; border-right: 1px solid {border}; padding: 44px 8px 12px; font-size: 14px; }}
+         .obscura-sidebar row {{ padding: 7px 10px; margin-bottom: 2px; border-radius: 4px; }}
+         .obscura-sidebar row image {{ color: #fa7437; }}
+         .obscura-sidebar row:selected {{ background: #155bd0; color: #ffffff; }}
+         .obscura-sidebar row:selected image {{ color: #ffffff; }}"
+    ));
+}
+
 fn build_sidebar(gui_status: Arc<GuiStatusWatch>, dev_visible: Rc<Cell<bool>>) -> ListBox {
     let list = ListBox::builder()
         .selection_mode(SelectionMode::Browse)
-        .css_classes(["navigation-sidebar", "sidebar"])
+        .css_classes(["navigation-sidebar", "sidebar", "obscura-sidebar"])
+        .width_request(200)
         .visible(false)
         .build();
 
@@ -357,7 +378,7 @@ fn view_row_widget(view: NavigationView) -> gtk::Box {
         NavigationView::About => "obscura-about-symbolic",
         NavigationView::Developer => "obscura-developer-symbolic",
     });
-    icon.set_pixel_size(24);
+    icon.set_pixel_size(18);
     let label = Label::builder()
         .halign(Align::Start)
         .valign(Align::Center)

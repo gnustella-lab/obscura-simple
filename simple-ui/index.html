@@ -110,7 +110,15 @@
         <div class="connection-choice">
           <p class="or"><span>or connect to</span></p>
           <div class="city-control">
-            <div class="city-picker"><span id="cityFlag" aria-hidden="true"></span><label class="sr-only" for="citySelect">VPN location</label><select id="citySelect" class="select"></select><span id="lastChosenBadge" class="last-chosen hidden">Last chosen</span></div>
+            <details class="city-picker" id="cityPicker">
+              <summary id="cityPickerTrigger" aria-label="Choose VPN location"><span id="cityFlag" aria-hidden="true"></span><span id="citySelectionText" class="flex-1">Choose a location</span><span id="lastChosenBadge" class="last-chosen hidden">Last chosen</span><span class="picker-chevron" aria-hidden="true">⌄</span></summary>
+              <select id="citySelect" hidden tabindex="-1" aria-hidden="true"></select>
+              <div class="city-popover" id="cityPopover">
+                <label class="sr-only" for="citySearch">Search countries or cities</label>
+                <input id="citySearch" type="search" placeholder="Search countries or cities…" autocomplete="off" />
+                <div id="cityOptions" role="group" aria-label="Locations by country"></div>
+              </div>
+            </details>
             <button id="btnConnectCity" class="btn primary">Connect</button>
             <button id="btnDisconnectCity" class="btn hidden">Disconnect</button>
           </div>
@@ -180,6 +188,11 @@
             <button data-scheme="auto" class="btn small scheme-btn">Auto</button>
             <button data-scheme="light" class="btn small scheme-btn">Light</button>
             <button data-scheme="dark" class="btn small scheme-btn">Dark</button>
+          </div>
+          <div class="field">
+            <label for="pixelMotionMode">Connection background animation</label>
+            <select id="pixelMotionMode"><option value="system">Follow system preference</option><option value="animate">Animate bottom to top</option><option value="static">No animation</option></select>
+            <p class="small muted" id="pixelMotionHint"></p>
           </div>
         </div>
         <div class="card">

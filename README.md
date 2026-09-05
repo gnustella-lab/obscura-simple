@@ -6,20 +6,20 @@ This is an independent fork of [Sovereign-Engineering/obscuravpn-client](https:/
 
 ## Current release
 
-**[Obscura Simple UI 1.177-10](https://github.com/gnustella-lab/obscura-simple/releases/tag/v1.177-simple-10)** is the current published release.
+**[Obscura Simple UI 1.177-11](https://github.com/gnustella-lab/obscura-simple/releases/tag/v1.177-simple-11)** is the current published release.
 
 | Item | Current state |
 | --- | --- |
-| Release tag | `v1.177-simple-10` |
-| Debian package | `obscura-simple_1.177-10_amd64.deb` |
-| Package and executable version | `1.177-10` |
+| Release tag | `v1.177-simple-11` |
+| Debian package | `obscura-simple_1.177-11_amd64.deb` |
+| Package and executable version | `1.177-11` |
 | Published architecture | `amd64` |
 | Package target | Ubuntu 24.04 or a system with compatible dependencies |
 | Download size | About 24 MB |
 
-- [Download the `.deb`](https://github.com/gnustella-lab/obscura-simple/releases/download/v1.177-simple-10/obscura-simple_1.177-10_amd64.deb)
-- [Download `SHA256SUMS`](https://github.com/gnustella-lab/obscura-simple/releases/download/v1.177-simple-10/SHA256SUMS)
-- [Release notes](release-notes/v1.177-simple-10.md) · [All releases](https://github.com/gnustella-lab/obscura-simple/releases)
+- [Download the `.deb`](https://github.com/gnustella-lab/obscura-simple/releases/download/v1.177-simple-11/obscura-simple_1.177-11_amd64.deb)
+- [Download `SHA256SUMS`](https://github.com/gnustella-lab/obscura-simple/releases/download/v1.177-simple-11/SHA256SUMS)
+- [Release notes](release-notes/v1.177-simple-11.md) · [All releases](https://github.com/gnustella-lab/obscura-simple/releases)
 
 Release binaries are attached to GitHub releases, not committed to the repository. `tag.json` tracks the upstream version (`1.177`); the Debian `-N` revision and `v1.177-simple-N` tag identify this fork's releases.
 
@@ -28,7 +28,7 @@ Release binaries are attached to GitHub releases, not committed to the repositor
 Download the `.deb` and `SHA256SUMS` into the same directory, then run:
 
 ```bash
-sha256sum -c SHA256SUMS && sudo apt install ./obscura-simple_1.177-10_amd64.deb
+sha256sum -c SHA256SUMS && sudo apt install ./obscura-simple_1.177-11_amd64.deb
 sudo obscura add-operator "$USER"
 systemctl status obscura.service --no-pager
 ```
@@ -62,8 +62,8 @@ obscura disconnect
 
 The current UI follows the official app's visual style while retaining this fork's Linux functionality:
 
-- **Connection:** Quick Connect, city selection, session information, and a protection status panel. Background pixels fill orange from bottom to top when connecting, with cancellation and reduced-motion support.
-- **Location:** searchable location rows grouped by region, last-chosen and pinned locations, keyboard activation, and local SVG country flags with their restored proportions and rounded borders.
+- **Connection:** Quick Connect, expandable country and city selection, session information, and a protection status panel. Background pixels fill orange from bottom to top when connecting, with cancellation and reduced-motion support.
+- **Location:** searchable locations grouped by region with expandable country sublists, last-chosen and pinned locations, keyboard activation, and local SVG country flags with their restored proportions and rounded borders.
 - **Account:** subscription status, masked/revealed account number, copying, payment and WireGuard configuration links, logout, and account deletion.
 - **Settings:** launch at login, auto-connect, kill switch, local network access, key rotation, DNS blocking, and appearance controls.
 - **Help:** diagnostic archive creation, an optional problem description, support contact, and social links.
@@ -72,9 +72,13 @@ The current UI follows the official app's visual style while retaining this fork
 
 The GTK sidebar and backend navigation state stay synchronized. A matching web sidebar is used for browser previews and hidden inside the native app, avoiding duplicate navigation. Light and dark themes share the same orange accent; dark-mode primary buttons use white text and a white Quick Connect icon. Narrow layouts are supported.
 
+Connection background animation can follow the system preference, animate bottom to top, or remain static. Choose **Settings → Appearance → Connection background animation → Animate bottom to top** to enable the effect only in this app when desktop animations are disabled. The default follows the system preference.
+
+The `1.177-11` checks cover country expansion, search, selection, keyboard focus, full picker outlines, narrow layouts, animation progression, cancellation, and saved motion preferences. See the [updated previews](previews/location-improvements/index.html).
+
 ## Kill switch status
 
-The kill switch is a regular setting; its experimental label was removed in `1.177-9`. The backend is unchanged in `1.177-10`.
+The kill switch is a regular setting; its experimental label was removed in `1.177-9`. The backend is unchanged in `1.177-11`.
 
 When enabled, the packaged system service reads the saved preference and installs blocking rules **before network preparation at boot**. It announces readiness only after the kernel acknowledges those rules. Invalid or unreadable preferences retain protection while initialization retries. DNS setup failures cannot bypass firewall installation, and the systemd descriptor store preserves the firewall socket across service crashes and restarts.
 
@@ -102,7 +106,7 @@ Run the following commands from the repository root. Native builds require Rust/
 
 ```bash
 CARGO_BUILD_JOBS=1 ./contrib/bin/build-simple-deb.bash
-# Output: ./obscura-simple_1.177-10_amd64.deb on an amd64 host
+# Output: ./obscura-simple_1.177-11_amd64.deb on an amd64 host
 ```
 
 This generates the Simple UI resources, builds both release binaries with matching versions, and stages the package and service installation scripts. Nix and Docker are not required for this path. One build job is useful on machines with limited RAM.
@@ -119,7 +123,7 @@ The helper generates resources and builds the debug GUI. It expects the service 
 To build a matching debug CLI/service binary:
 
 ```bash
-OBSCURA_VERSION=v1.177-10 cargo build \
+OBSCURA_VERSION=v1.177-11 cargo build \
   --manifest-path rustlib/Cargo.toml --locked --bin obscura
 ```
 

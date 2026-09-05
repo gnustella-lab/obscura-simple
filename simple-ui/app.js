@@ -32,71 +32,62 @@ let osStatus=null, appStatus=null, accountInfo=null, exitList=[], traffic=null;
 let osVersion=null, exitVersion=null, selectedCity=null, accountRevealed=false, devClicks=0;
 const $ = s=>document.querySelector(s);
 const $$ = s=>document.querySelectorAll(s);
-// Background pixels fill orange bottom-up on VPN connect.
-let pixelCells=[], pixelFillOrder=[], pixelTimer=null, lastPixelState="";
+// CSS reveals one row at a time, independent of native bridge response timing.
+let pixelCells=[], lastPixelState="";
 let pixelRequest=null;
+const locationCountriesOpen=new Set(), pickerCountriesOpen=new Set();
+let locationListSignature="", pickerListSignature="";
 function pixelRand(seed){ let t=seed+0x6D2B79F5; return function(){ t=Math.imul(t^t>>>15,t|1); t^=t+Math.imul(t^t>>>7,t|61); return ((t^t>>>14)>>>0)/4294967296; }; }
 function buildPixelGrid(){
   const grid=$("#pixelGrid"); if(!grid || pixelCells.length) return;
-  const ROWS=5, COLS=40, DENSITY=[0.20,0.35,0.60,0.80,0.95];
-  const rand=pixelRand(1337);
-  const byRow=[[],[],[],[],[]];
-  for(let r=0;r<ROWS;r++){
-    for(let c=0;c<COLS;c++){
-      const div=document.createElement("div");
-      if(rand()<DENSITY[r]){ div.className="pixel"; byRow[r].push(div); }
-      else { div.className="pixel empty"; }
-      grid.appendChild(div);
-      pixelCells.push(div);
+  const rows=5, columns=40, density=[0.20,0.35,0.60,0.80,0.95], random=pixelRand(1337);
+  for(let row=0;row<rows;row++){
+    for(let column=0;column<columns;column++){
+      const pixel=document.createElement("div");
+      pixel.className=random()<density[row]?"pixel":"pixel empty";
+      pixel.style.setProperty("--pixel-delay",`${(rows-1-row)*400}ms`);
+      grid.appendChild(pixel);pixelCells.push(pixel);
     }
   }
-  // Fill order bottom-up; shuffle lightly within each row for organic feel.
-  const shuffle=pixelRand(777);
-  for(let r=ROWS-1;r>=0;r--){
-    const row=byRow[r];
-    for(let i=row.length-1;i>0;i--){ const j=Math.floor(shuffle()*(i+1)); [row[i],row[j]]=[row[j],row[i]]; }
-    pixelFillOrder.push(...row);
-  }
 }
-function pixelSetAll(on){ pixelCells.forEach(el=>{ if(!el.classList.contains("empty")) el.classList.toggle("on",on); }); }
-function renderPixelBackground(isConnected, isConnecting){
+function pixelSetAll(on){ pixelCells.forEach(pixel=>{if(!pixel.classList.contains("empty")) pixel.classList.toggle("on",on);}); }
+function renderPixelBackground(isConnected,isConnecting,restart=false){
   const state=isConnected?"connected":isConnecting?"connecting":"disconnected";
-  if(state===lastPixelState) return;
-  const previousState=lastPixelState;
+  if(state===lastPixelState && !restart) return;
   lastPixelState=state;
-  if(state==="connected" && previousState==="connecting" && pixelTimer) return;
-  if(pixelTimer){ clearInterval(pixelTimer); pixelTimer=null; }
-  if(!pixelCells.length) return;
-  const reduced=window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-  if(state==="connected" || (state==="connecting" && reduced)){ pixelSetAll(true); return; }
-  if(state==="disconnected"){ pixelSetAll(false); return; }
-  // connecting: progressive bottom-up fill over ~2s
-  pixelSetAll(false);
-  let idx=0;
-  const step=Math.max(1, Math.ceil(pixelFillOrder.length/20));
-  const fill=()=>{
-    for(let k=0;k<step && idx<pixelFillOrder.length;k++,idx++) pixelFillOrder[idx].classList.add("on");
-    if(idx>=pixelFillOrder.length){ clearInterval(pixelTimer); pixelTimer=null; }
-  };
-  pixelTimer=setInterval(fill,100);
-  fill();
+  if(state==="disconnected"){pixelSetAll(false);return;}
+  if(restart){
+    pixelSetAll(false);
+    // Commit the reset so a second connection can replay the same CSS animation.
+    void $("#pixelGrid").offsetWidth;
+  }
+  pixelSetAll(true);
+}
+function setPixelMotion(mode){
+  if(!["system","animate","static"].includes(mode)) mode="system";
+  document.documentElement.dataset.pixelMotion=mode;
+  $("#pixelMotionMode").value=mode;
+  const reduced=window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  $("#pixelMotionHint").textContent=mode==="system" && reduced?"Your system has animations disabled. Choose Animate bottom to top to enable this effect only in Obscura.":"Changes only the background pixels on Connection.";
+  try{localStorage.setItem("obscura-pixel-motion",mode);}catch{}
+  syncPixelBackground(true);
 }
 function clearPixelRequest(){
   if(pixelRequest) clearTimeout(pixelRequest.timer);
   pixelRequest=null;
 }
-function syncPixelBackground(){
+function syncPixelBackground(restart=false){
   const status=osStatus?.serviceStatus?.healthy?.vpnStatus;
   const connected=!!status?.connected, connecting=!!status?.connecting;
   if(pixelRequest && (!status || (pixelRequest.connect ? connected || connecting : !connected && !connecting))) clearPixelRequest();
-  if(pixelRequest) renderPixelBackground(false,pixelRequest.connect);
-  else renderPixelBackground(connected,connecting);
+  if(pixelRequest) renderPixelBackground(false,pixelRequest.connect,restart);
+  else renderPixelBackground(connected,connecting,restart);
 }
 async function requestTunnel(command,args={}){
   clearPixelRequest();
   const request={connect:command==='startTunnel',timer:null};
   pixelRequest=request;
-  renderPixelBackground(false,request.connect);
+  renderPixelBackground(false,request.connect,request.connect);
   request.timer=setTimeout(()=>{
     if(pixelRequest!==request) return;
     clearPixelRequest();
@@ -119,10 +110,13 @@ function syncHashToView(name){
   }catch(e){}
 }
 function showViewLocal(name){
+  const previousView=document.body.dataset.view;
   $$(".view").forEach(v=>v.classList.add("hidden"));
   const el=$("#view-"+name); if(el) el.classList.remove("hidden");
   $$(".nav-btn").forEach(b=>{ const active=b.dataset.view===name; b.classList.toggle("active",active); if(active)b.setAttribute("aria-current","page");else b.removeAttribute("aria-current"); });
   document.body.dataset.view=name;
+  if(name==="connection" && previousView!=="connection") syncPixelBackground(true);
+  if(name!=="connection") $("#cityPicker").open=false;
   $("#pageTitle").textContent=({connection:"Connection",location:"Location",account:"Account",settings:"Settings",help:"Help",about:"About",developer:"Developer",login:"Welcome",splash:"Obscura VPN",degraded:"Service unavailable"})[name] || "Obscura VPN";
 }
 function showView(name){
@@ -289,9 +283,58 @@ function renderCityChoice(){
   const exit=exitList.find(e=>`${e.country_code}:${e.city_code}`===value);
   $("#cityFlag").innerHTML=exit?flagSvg(exit.country_code):"";
   hydrateFlagImgs($("#cityFlag"));
+  $("#citySelectionText").textContent=exit?stripEmoji(exit.city_name):"Choose a location";
+  $("#cityPickerTrigger").setAttribute("aria-label",exit?`VPN location: ${stripEmoji(exit.city_name)}, ${countryName(exit.country_code)}. Choose another location`:"Choose VPN location");
+  renderCityOptions();
   const last=appStatus?.lastChosenExit?.city;
   $("#lastChosenBadge").classList.toggle("hidden",!(exit && last && exit.city_code===last.city_code && exit.country_code===last.country_code));
   $("#btnConnectCity").disabled=!exit || !osStatus?.internetAvailable;
+}
+function matchingLocations(query){
+  return exitList.filter(exit=>!query || [stripEmoji(exit.city_name),exit.city_code,exit.country_code,countryName(exit.country_code)].some(value=>value.toLowerCase().includes(query)));
+}
+function countryGroup(code,exits,makeRow,expanded,query){
+  const group=document.createElement("details");group.className="country-group";group.dataset.country=code;
+  group.open=!!query || expanded.has(code);
+  const heading=document.createElement("summary");heading.dataset.focusKey=`country:${code}`;
+  heading.innerHTML=`<span class="flag" aria-hidden="true">${flagSvg(code)}</span><span class="flex-1">${escHtml(countryName(code))}</span><span class="country-count">${exits.length}</span><span class="country-chevron" aria-hidden="true">›</span>`;
+  const cities=document.createElement("div");cities.className="country-cities";
+  [...exits].sort((a,b)=>stripEmoji(a.city_name).localeCompare(stripEmoji(b.city_name))).forEach(exit=>cities.appendChild(makeRow(exit)));
+  group.append(heading,cities);hydrateFlagImgs(heading);
+  group.addEventListener("toggle",()=>{if(!query && group.isConnected){if(group.open)expanded.add(code);else expanded.delete(code);}});
+  return group;
+}
+function preserveCountryState(container,expanded){
+  if(container.dataset.searching!=="true") container.querySelectorAll("details.country-group").forEach(group=>{if(group.open)expanded.add(group.dataset.country);else expanded.delete(group.dataset.country);});
+  return container.contains(document.activeElement)?document.activeElement.dataset.focusKey:undefined;
+}
+function restoreCountryFocus(container,key){
+  if(key) [...container.querySelectorAll("[data-focus-key]")].find(element=>element.dataset.focusKey===key)?.focus({preventScroll:true});
+}
+function renderCityOptions(){
+  const query=$("#citySearch").value.trim().toLowerCase(), list=$("#cityOptions"), selected=$("#citySelect").value;
+  const signature=JSON.stringify([exitList,query,selected]);if(signature===pickerListSignature)return;pickerListSignature=signature;
+  const focus=preserveCountryState(list,pickerCountriesOpen);list.dataset.searching=String(!!query);list.replaceChildren();
+  const groups={};matchingLocations(query).forEach(exit=>(groups[exit.country_code] ||= []).push(exit));
+  function option(exit){
+    const value=`${exit.country_code}:${exit.city_code}`,button=document.createElement("button");button.type="button";button.className="picker-city";button.dataset.focusKey=`city:${value}`;
+    button.innerHTML=`<span>${escHtml(stripEmoji(exit.city_name))}</span>${selected===value?'<span aria-hidden="true">✓</span>':''}`;
+    button.setAttribute("aria-label",`Select ${stripEmoji(exit.city_name)}, ${countryName(exit.country_code)}`);
+    if(selected===value)button.setAttribute("aria-current","true");
+    button.onclick=()=>{$("#citySelect").value=value;renderCityChoice();$("#cityPicker").open=false;$("#cityPickerTrigger").focus();};
+    return button;
+  }
+  Object.keys(groups).sort((a,b)=>countryName(a).localeCompare(countryName(b))).forEach(code=>list.appendChild(countryGroup(code,groups[code],option,pickerCountriesOpen,query)));
+  if(!Object.keys(groups).length){const empty=document.createElement("p");empty.className="muted small picker-empty";empty.textContent="No matching locations.";list.appendChild(empty);}
+  restoreCountryFocus(list,focus);
+}
+function positionCityPopover(){
+  const picker=$("#cityPicker");if(!picker.open)return;
+  const rect=$("#cityPickerTrigger").getBoundingClientRect(),below=innerHeight-rect.bottom-16,above=rect.top-16;
+  if(rect.bottom<0 || rect.top>innerHeight){picker.open=false;return;}
+  const upwards=below<220 && above>below;
+  picker.classList.toggle("opens-above",upwards);
+  picker.style.setProperty("--picker-height",`${Math.max(120,Math.min(360,upwards?above:below))}px`);
 }
 function locationRegion(cc){
   // Follow the upstream continent order, including its Mexico grouping.
@@ -307,24 +350,28 @@ function locationRegion(cc){
 }
 function renderLocation(){
   const query=$("#locationSearch").value.trim().toLowerCase();
-  const list=$("#locationList"); list.replaceChildren();
-  const filtered=exitList.filter(e=>!query || stripEmoji(e.city_name).toLowerCase().includes(query) || e.city_code.toLowerCase().includes(query) || e.country_code.toLowerCase().includes(query) || countryName(e.country_code).toLowerCase().includes(query));
+  const list=$("#locationList");
+  const filtered=matchingLocations(query);
   $("#locationStats").textContent=`${filtered.length} locations`;
   $("#locationTitle").textContent="Search locations";
   const pins=appStatus?.pinnedLocations || [], last=appStatus?.lastChosenExit?.city;
   const connected=appStatus?.vpnStatus?.connected ? getCityFromStatus(appStatus.vpnStatus) : undefined;
   const key=e=>`${e.country_code}:${e.city_code}`;
+  const signature=JSON.stringify([exitList,pins,last,connected,query]);if(signature===locationListSignature)return;locationListSignature=signature;
+  const focus=preserveCountryState(list,locationCountriesOpen);list.dataset.searching=String(!!query);list.replaceChildren();
   const pinned=new Set(pins.map(key)), used=new Set();
   function addHeading(text,lastUsed=false){const h=document.createElement("h4");h.textContent=text;h.className=lastUsed?"last-heading":"muted";list.appendChild(h);}
-  function addExit(exit){
-    used.add(key(exit));
+  function makeRow(exit,scope="country"){
     const isPinned=pinned.has(key(exit)), isConnected=connected && key(connected)===key(exit);
     const row=document.createElement("div");row.className="exit-card"+(isConnected?" connected":"");
     row.innerHTML=`<button class="exit-connect" type="button"><span class="flag" aria-hidden="true">${flagSvg(exit.country_code)}</span><span class="flex-1"><span class="exit-name">${escHtml(stripEmoji(exit.city_name))}</span><span class="exit-country">${escHtml(countryName(exit.country_code))}${isConnected?" · Connected":""}</span></span></button><button class="icon-btn pin-btn" type="button" aria-pressed="${isPinned}" aria-label="${isPinned?"Unpin":"Pin"} ${escHtml(stripEmoji(exit.city_name))}">${pinSvg(isPinned)}</button>`;
     row.querySelector(".exit-connect").onclick=()=>connectCity(exit);
+    row.querySelector(".exit-connect").dataset.focusKey=`${scope}:connect:${key(exit)}`;
     row.querySelector(".pin-btn").onclick=()=>togglePin(exit,isPinned);
-    hydrateFlagImgs(row);list.appendChild(row);
+    row.querySelector(".pin-btn").dataset.focusKey=`${scope}:pin:${key(exit)}`;
+    hydrateFlagImgs(row);return row;
   }
+  function addExit(exit){used.add(key(exit));list.appendChild(makeRow(exit,"shortcut"));}
   if(!query){
     const previous=last && filtered.find(e=>key(e)===key(last));
     if(previous){addHeading("Last chosen",true);addExit(previous);}
@@ -333,10 +380,13 @@ function renderLocation(){
   }
   const order=["North America","Europe","South America","Asia","Africa","Oceania"];
   const groups={};
-  filtered.filter(e=>!used.has(key(e))).forEach(e=>(groups[locationRegion(e.country_code)] ||= []).push(e));
+  filtered.forEach(e=>(groups[locationRegion(e.country_code)] ||= []).push(e));
   Object.keys(groups).sort((a,b)=>(order.indexOf(a)<0?99:order.indexOf(a))-(order.indexOf(b)<0?99:order.indexOf(b)) || a.localeCompare(b)).forEach(region=>{
-    addHeading(region);groups[region].sort((a,b)=>countryName(a.country_code).localeCompare(countryName(b.country_code)) || stripEmoji(a.city_name).localeCompare(stripEmoji(b.city_name))).forEach(addExit);
+    addHeading(region);
+    const countries={};groups[region].forEach(exit=>(countries[exit.country_code] ||= []).push(exit));
+    Object.keys(countries).sort((a,b)=>countryName(a).localeCompare(countryName(b))).forEach(code=>list.appendChild(countryGroup(code,countries[code],makeRow,locationCountriesOpen,query)));
   });
+  restoreCountryFocus(list,focus);
   if(!filtered.length){
     const empty=document.createElement("div");empty.className="card";empty.textContent="No locations found. Try another search or refresh the list.";
     const button=document.createElement("button");button.className="btn small";button.textContent="Refresh list";button.onclick=()=>ffi('refreshExitList',{freshness:0}).catch(e=>toast(e.message));empty.appendChild(document.createElement("br"));empty.appendChild(button);list.appendChild(empty);
@@ -437,6 +487,10 @@ function renderSettings(){
 }
 document.addEventListener("DOMContentLoaded", ()=>{
   buildPixelGrid();
+  let motion="system";try{motion=localStorage.getItem("obscura-pixel-motion") || "system";}catch{}
+  setPixelMotion(motion);
+  $("#pixelMotionMode").onchange=event=>setPixelMotion(event.target.value);
+  window.matchMedia("(prefers-reduced-motion: reduce)").addEventListener("change",()=>setPixelMotion($("#pixelMotionMode").value));
   let scheme="auto";try{scheme=localStorage.getItem("obscura-color-scheme") || "auto";}catch{}
   applyLocalColorScheme(["auto","light","dark"].includes(scheme)?scheme:"auto");
   $("#nav").addEventListener("click", e=>{ const btn=e.target.closest(".nav-btn"); if(btn) requestNavigation(btn.dataset.view); });
@@ -448,6 +502,13 @@ document.addEventListener("DOMContentLoaded", ()=>{
     if(isValidView(h) && h!==osStatus.navigationView) requestNavigation(h);
   });
   $("#citySelect").onchange=renderCityChoice;
+  $("#citySearch").oninput=renderCityOptions;
+  $("#cityPicker").addEventListener("toggle",()=>{if($("#cityPicker").open){renderCityOptions();positionCityPopover();}});
+  document.addEventListener("focusin",event=>{if(!$("#cityPicker").contains(event.target))$("#cityPicker").open=false;});
+  document.addEventListener("click",event=>{if(!$("#cityPicker").contains(event.target))$("#cityPicker").open=false;});
+  document.addEventListener("keydown",event=>{if(event.key==="Escape" && $("#cityPicker").open){event.preventDefault();$("#cityPicker").open=false;$("#cityPickerTrigger").focus();}});
+  window.addEventListener("resize",positionCityPopover);
+  window.addEventListener("scroll",positionCityPopover,{passive:true});
   $("#btnLocationConnect").onclick=()=>{
     const status=appStatus?.vpnStatus;
     const stop=!!(status?.connected || status?.connecting);

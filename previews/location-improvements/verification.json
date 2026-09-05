@@ -1,0 +1,46 @@
+{
+  "focus": {
+    "outline": "2px",
+    "summaryOutline": "none",
+    "flagInside": true,
+    "popupTop": 405.5,
+    "popupBottom": 642,
+    "height": 650
+  },
+  "first": [
+    0,
+    0,
+    0,
+    0,
+    1
+  ],
+  "middle": [
+    0,
+    0,
+    0,
+    0.983476,
+    1
+  ],
+  "fast": [
+    0,
+    0,
+    0,
+    0,
+    1
+  ],
+  "replay": [
+    0,
+    0,
+    0,
+    0,
+    1
+  ],
+  "direct": [
+    0,
+    0,
+    0,
+    0,
+    1
+  ],
+  "passed": true
+}

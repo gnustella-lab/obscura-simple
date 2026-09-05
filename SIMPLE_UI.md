@@ -6,12 +6,29 @@ A lightweight, intuitive HTML/CSS/JS replacement for the React/Mantine `obscura-
 
 - **Vanilla JS, HTML and CSS** – no Node dependencies at runtime
 - **Same Rust bridge** (`window.webkit.messageHandlers.commandBridge.postMessage`) as the original – uses `getOsStatus` long-poll, `jsonFfiCmd` for all `ManagerCmd` (login, status, exit list, DNS, etc.), `startTunnel`/`stopTunnel`
-- **Views:** Connection (quick connect, city select, progress, session), Location (search, pinned, last used, flat rows grouped by region), Account (status, copy/reveal, logout/delete), Settings (auto-connect, local network, DNS blocking, appearance, kill switch), Help (debug bundle), About, Developer (5x click on the version in About)
+- **Views:** Connection (quick connect, city select, progress, session), Location (search, pinned, last used, expandable country groups within regions), Account (status, copy/reveal, logout/delete), Settings (auto-connect, local network, DNS blocking, appearance, kill switch), Help (debug bundle), About, Developer (5x click on the version in About)
 - **Navigation:** the backend `osStatus.navigationView` is the source of truth, like the React UI — the native left sidebar and the browser fallback sidebar stay in sync via `setNavigationView` and the `getOsStatus` long-poll; `location.hash` (`#connection`, `#location`, etc.) is only a mirror for refresh/deep-link
 - **Official-style design:** gray surfaces, orange controls, blue sidebar selection, official mascots and wordmark. Light/dark appearance and a narrow-screen layout are supported. Native GTK hides the duplicate web sidebar through `window.obscuraNativeSidebar`.
 - **Connection feedback:** animated background pixels and a protection panel distinguish VPN connection, kill-switch blocking, and unconfirmed protection.
 - **Account handling:** Verhoeff checksum (same as `accountUtils.ts`), `normalizeAccountId` strips dashes/spaces, `generateAccountNumber` via `crypto.getRandomValues`
 - **Integration:** `simple-ui/` is packaged via `rustlib/gen-gresource-xml.py` → `webui.gresource` + `icons.gresource`, built with `OBSCURA_GRESOURCES_DIR=/tmp/obscura-gresources cargo build --manifest-path rustlib/Cargo.toml --features gui --bin obscura-gui`
+
+## Location selection and animation
+
+Location and Connection both provide expandable country groups. Search opens
+matching groups, and normal status updates preserve expansion and keyboard focus.
+The Connection chooser selects a city without connecting until Connect is pressed;
+its focus outline includes the flag and the entire trigger.
+
+In **Settings → Appearance → Connection background animation**, choose:
+
+- **Follow system preference** (default): respects the desktop's reduced-motion setting.
+- **Animate bottom to top**: enables this color reveal in Obscura even when system animations are disabled.
+- **No animation**: shows the final color immediately.
+
+The reveal uses a 400 ms delay between rows and a 240 ms fade. It continues across
+fast connection updates and restarts when Connection becomes visible. Cancellation
+clears the fill. The preference is saved locally and does not change desktop settings.
 
 ## Visual verification
 
@@ -27,7 +44,7 @@ python3 rustlib/gen-gresource-xml.py simple-ui /tmp/webui.generated.xml
 glib-compile-resources --target=/tmp/obscura-gresources/webui.gresource /tmp/webui.generated.xml
 
 # 2. Build GUI
-OBSCURA_VERSION=v1.177-10 OBSCURA_GRESOURCES_DIR=/tmp/obscura-gresources cargo build --manifest-path rustlib/Cargo.toml --features gui --bin obscura-gui
+OBSCURA_VERSION=v1.177-11 OBSCURA_GRESOURCES_DIR=/tmp/obscura-gresources cargo build --manifest-path rustlib/Cargo.toml --features gui --bin obscura-gui
 
 # Or use helper
 ./simple-ui/rebuild.sh
@@ -56,9 +73,9 @@ A complete `.deb` with the simple UI, service auto-enabled and auto-started:
 # One command: builds gresources + release binaries + stages a proper Debian package
 ./contrib/bin/build-simple-deb.bash
 # or: ./simple-ui/build-deb.sh
-# outputs: ./obscura-simple_1.177-10_amd64.deb
+# outputs: ./obscura-simple_1.177-11_amd64.deb
 
-sudo apt install ./obscura-simple_1.177-10_amd64.deb
+sudo apt install ./obscura-simple_1.177-11_amd64.deb
 systemctl status obscura.service   # -> active (running)
 sudo obscura add-operator $USER    # add yourself to obscura group
 newgrp obscura                     # or logout/login
@@ -73,8 +90,8 @@ mkdir -p /tmp/obscura-gresources-simple
 glib-compile-resources --sourcedir=rustlib/src/gui --target=/tmp/obscura-gresources-simple/icons.gresource rustlib/src/gui/icons.gresource.xml
 python3 rustlib/gen-gresource-xml.py simple-ui /tmp/webui.generated.xml
 glib-compile-resources --target=/tmp/obscura-gresources-simple/webui.gresource /tmp/webui.generated.xml
-OBSCURA_VERSION=v1.177-10 OBSCURA_GRESOURCES_DIR=/tmp/obscura-gresources-simple cargo build --manifest-path rustlib/Cargo.toml --release --locked --bin obscura
-OBSCURA_VERSION=v1.177-10 OBSCURA_GRESOURCES_DIR=/tmp/obscura-gresources-simple cargo build --manifest-path rustlib/Cargo.toml --release --features gui --bin obscura-gui
+OBSCURA_VERSION=v1.177-11 OBSCURA_GRESOURCES_DIR=/tmp/obscura-gresources-simple cargo build --manifest-path rustlib/Cargo.toml --release --locked --bin obscura
+OBSCURA_VERSION=v1.177-11 OBSCURA_GRESOURCES_DIR=/tmp/obscura-gresources-simple cargo build --manifest-path rustlib/Cargo.toml --release --features gui --bin obscura-gui
 # then staging + dpkg-deb via the script above
 ```
 
@@ -102,11 +119,11 @@ Common causes fixed by the new packages: missing `obscura` group (`sysusers`), n
 
 ## Releases
 
-Current package revision: `1.177-10`, producing `obscura-simple_1.177-10_amd64.deb`. Release assets are not committed. Versioning: `tag.json` tracks upstream (`1.177`); the `-N` suffix is the fork packaging revision.
+Current package revision: `1.177-11`, producing `obscura-simple_1.177-11_amd64.deb`. Release assets are not committed. Versioning: `tag.json` tracks upstream (`1.177`); the `-N` suffix is the fork packaging revision.
 
 ## Differences from React UI
 
 - No Framer Motion, Mantine, or Vite build step at runtime
-- CSS transitions and vanilla-JS pixel animation, with reduced-motion support; polling uses an osStatus long-poll, exit list refresh every 60s, account refresh every 30s, and traffic polling every 1s
+- CSS row-staggered pixel reveals, with an app-only animation preference; polling uses an osStatus long-poll, exit list refresh every 60s, account refresh every 30s, and traffic polling every 1s
 - Account creation still uses same Verhoeff and `payUrl` (`https://obscura.com/pay#account_id=`)
 - Navigation follows the backend `osStatus.navigationView` (same as `<Routes location={osStatus.navigationView}>`); the browser fallback sidebar pushes via `setNavigationView` and mirrors the view in `location.hash` with `history.replaceState`

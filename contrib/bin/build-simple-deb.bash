@@ -40,7 +40,7 @@ else
 fi
 VERSION="${VERSION#v}"
 VERSION="${VERSION%%-*}"
-DEB_VERSION="${VERSION}-10"
+DEB_VERSION="${VERSION}-11"
 if [ -z "$OUT" ]; then
   OUT="$REPO_ROOT/obscura-simple_${DEB_VERSION}_${ARCH}.deb"
 fi
@@ -105,7 +105,7 @@ mkdir -p "$STAGING/usr/share/doc/obscura-simple"
 cat > "$STAGING/usr/share/doc/obscura-simple/changelog.Debian" <<EOF
 obscura-simple (${DEB_VERSION}) stable; urgency=low
 
-  * Release ${DEB_VERSION}: refresh the Simple UI, animate the pixel background, and restore SVG flag styling.
+  * Release ${DEB_VERSION}: group locations by country, fix pixel animation, and outline the complete location picker.
 
  -- Obscura Repository Signer <packages@obscura.com>  $(date -uR)
 EOF

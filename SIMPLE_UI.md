@@ -11,7 +11,7 @@ A lightweight, intuitive HTML/CSS/JS replacement for the React/Mantine `obscura-
 - **Official-style design:** gray surfaces, orange controls, blue sidebar selection, official mascots and wordmark. Light/dark appearance and a narrow-screen layout are supported. Native GTK hides the duplicate web sidebar through `window.obscuraNativeSidebar`.
 - **Connection feedback:** animated background pixels and a protection panel distinguish VPN connection, kill-switch blocking, and unconfirmed protection.
 - **Account handling:** Verhoeff checksum (same as `accountUtils.ts`), `normalizeAccountId` strips dashes/spaces, `generateAccountNumber` via `crypto.getRandomValues`
-- **Integration:** `simple-ui/` is packaged via `rustlib/gen-gresource-xml.py` → `webui.gresource` + `icons.gresource`, built with `OBSCURA_GRESOURCES_DIR=/tmp/obscura-gresources cargo build --features gui --bin obscura-gui`
+- **Integration:** `simple-ui/` is packaged via `rustlib/gen-gresource-xml.py` → `webui.gresource` + `icons.gresource`, built with `OBSCURA_GRESOURCES_DIR=/tmp/obscura-gresources cargo build --manifest-path rustlib/Cargo.toml --features gui --bin obscura-gui`
 
 ## Visual verification
 
@@ -27,7 +27,7 @@ python3 rustlib/gen-gresource-xml.py simple-ui /tmp/webui.generated.xml
 glib-compile-resources --target=/tmp/obscura-gresources/webui.gresource /tmp/webui.generated.xml
 
 # 2. Build GUI
-OBSCURA_VERSION=v1.177-10 OBSCURA_GRESOURCES_DIR=/tmp/obscura-gresources cargo build --features gui --bin obscura-gui
+OBSCURA_VERSION=v1.177-10 OBSCURA_GRESOURCES_DIR=/tmp/obscura-gresources cargo build --manifest-path rustlib/Cargo.toml --features gui --bin obscura-gui
 
 # Or use helper
 ./simple-ui/rebuild.sh
@@ -73,8 +73,8 @@ mkdir -p /tmp/obscura-gresources-simple
 glib-compile-resources --sourcedir=rustlib/src/gui --target=/tmp/obscura-gresources-simple/icons.gresource rustlib/src/gui/icons.gresource.xml
 python3 rustlib/gen-gresource-xml.py simple-ui /tmp/webui.generated.xml
 glib-compile-resources --target=/tmp/obscura-gresources-simple/webui.gresource /tmp/webui.generated.xml
-OBSCURA_VERSION=v1.177-10 OBSCURA_GRESOURCES_DIR=/tmp/obscura-gresources-simple cargo build --release --locked --bin obscura
-OBSCURA_VERSION=v1.177-10 OBSCURA_GRESOURCES_DIR=/tmp/obscura-gresources-simple cargo build --release --features gui --bin obscura-gui
+OBSCURA_VERSION=v1.177-10 OBSCURA_GRESOURCES_DIR=/tmp/obscura-gresources-simple cargo build --manifest-path rustlib/Cargo.toml --release --locked --bin obscura
+OBSCURA_VERSION=v1.177-10 OBSCURA_GRESOURCES_DIR=/tmp/obscura-gresources-simple cargo build --manifest-path rustlib/Cargo.toml --release --features gui --bin obscura-gui
 # then staging + dpkg-deb via the script above
 ```
 
@@ -107,6 +107,6 @@ Current package revision: `1.177-10`, producing `obscura-simple_1.177-10_amd64.d
 ## Differences from React UI
 
 - No Framer Motion, Mantine, or Vite build step at runtime
-- No animations, but same polling intervals (osStatus long-poll, exit list 60s, account 30s, traffic 1s)
+- CSS transitions and vanilla-JS pixel animation, with reduced-motion support; polling uses an osStatus long-poll, exit list refresh every 60s, account refresh every 30s, and traffic polling every 1s
 - Account creation still uses same Verhoeff and `payUrl` (`https://obscura.com/pay#account_id=`)
 - Navigation follows the backend `osStatus.navigationView` (same as `<Routes location={osStatus.navigationView}>`); the browser fallback sidebar pushes via `setNavigationView` and mirrors the view in `location.hash` with `history.replaceState`

@@ -1,6 +1,11 @@
 # Obscura Simple
 
-A Linux desktop client for Obscura VPN with a lightweight HTML/CSS/JavaScript interface, a GTK/WebKit shell, and the existing Rust VPN backend.
+A Linux desktop client for Obscura VPN — **no Electron**.
+
+The GUI is a native Linux app built with **GTK 4 + libadwaita**, rendering its lightweight HTML/CSS/JavaScript interface with the system's **WebKitGTK**. No bundled Chromium, no Node.js runtime — just the existing Rust VPN backend behind a native shell.
+
+> [!NOTE]
+> Because it reuses your distro's WebKitGTK and GTK libraries, the `.deb` is about 24 MB and follows your GNOME light/dark theme instead of shipping a whole browser.
 
 This is an independent fork of [Sovereign-Engineering/obscuravpn-client](https://github.com/Sovereign-Engineering/obscuravpn-client), based on upstream `v1.177` with its commit history preserved. It is not the official Obscura client. This fork's UI, documentation, and release notes are maintained in English.
 

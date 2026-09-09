@@ -158,6 +158,7 @@ cbindgen = "0.28.0"
 ring = "0.17.14"
 
 [features]
+simple-client = []
 gui = ["dep:gtk4", "dep:libadwaita", "dep:webkit6"]
 
 # Temporary SO_MARK fork. Patches do not propagate, consumers need this entry too.

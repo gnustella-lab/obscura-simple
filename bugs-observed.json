@@ -1,0 +1,80 @@
+{
+  "project": "obscura-simple",
+  "mode": "targeted fixes authorized by user",
+  "baseline_commit": "57fd7da7c96e3871d7583288f57bb9350763d6c8",
+  "version": "1.177-16",
+  "official_version": "1.178.1788437440",
+  "findings": [
+    {
+      "id": "OS-001",
+      "severity": "high",
+      "status": "fixed",
+      "evidence": "proven",
+      "issue": "The old Debian payload overlaps installed official packages.",
+      "baseline": "1.177-15: two files overlap obscura-cli and seven overlap obscura-gui.",
+      "resolution": "Separate executable paths, service, group, state directories, desktop/icon/AppStream/AppArmor identities; installation scripts never start or stop the official backend.",
+      "verification": "Real 1.177-16 .deb ownership intersection is empty. APT simulation installs only obscura-simple with zero removals."
+    },
+    {
+      "id": "OS-002",
+      "severity": "high",
+      "status": "fixed",
+      "evidence": "proven",
+      "issue": "Renaming the package alone leaves shared runtime IPC, GUI identity, autostart and user storage.",
+      "resolution": "Compile-time simple-client feature isolates sockets, systemd queries, GTK/tray IDs, autostart, operator command and WebKit data/cache. Protocol version checks retained. Shared /run/obscura.lock intentionally retained before network setup.",
+      "verification": "Rust namespace/autostart/exclusive-lock tests pass. Real CLI and GUI traces contact only Simple sockets; native D-Bus ownership and log namespace verified. Official process 65397 observed holding the shared lock."
+    },
+    {
+      "id": "OS-003",
+      "severity": "medium",
+      "status": "fixed",
+      "evidence": "proven",
+      "issue": "Community UI, metadata and support links ambiguously identify the fork as the official app.",
+      "resolution": "Obscura Simple (Unofficial) launcher/window/tray, explicit community About/Help text, correct recovery service commands, own AppStream metadata without official Alpha screenshots.",
+      "verification": "UI branding regression test passes; actual final packaged GUI displays the separated-service warning and Simple journal command."
+    }
+  ],
+  "verification": {
+    "rust": {
+      "passed": 21,
+      "failed": 0,
+      "ignored": 3,
+      "ignored_reason": "Kernel/TUN/network namespace integration tests intentionally not run on the live VPN host."
+    },
+    "javascript": {
+      "passed": 17,
+      "failed": 0
+    },
+    "package": {
+      "file": "obscura-simple_1.177-16_amd64.deb",
+      "sha256": "adbbf58940f81811a0f91c3ebc4a44bf2304f31460ec4372b01588986cecb21b",
+      "bytes": 24423514,
+      "installed": false
+    },
+    "flatpak": {
+      "file": "obscura-simple_1.177-16_x86_64.flatpak",
+      "sha256": "508c541707eeffa94f2e02a06118386203b172978907a27ae701b1f653a495bd",
+      "bytes": 10072520,
+      "runtime": "org.gnome.Platform/x86_64/50",
+      "scope": "GUI only, requires matching Simple host service from the .deb",
+      "isolated_user_install_test": true,
+      "gui_binary_identical_to_deb": true,
+      "gui_smoke_passed": true,
+      "permissions_verified": true,
+      "unix_socket_mount_probe": "Passed read-only Unix socket mount and peer UID preservation with an isolated transport fixture, not a VPN API fixture or live connection."
+    },
+    "official_preserved": {
+      "binary_hashes_unchanged": true,
+      "dpkg_integrity_passed": true,
+      "service_main_pid": 65397,
+      "service_state": "active/running"
+    },
+    "native_scope": "Final packaged .deb and Flatpak GUIs, isolated D-Bus/Xvfb/user directories, unavailable Simple service screens. No login, repair, connection, kill-switch or account operations were performed."
+  },
+  "limitations": [
+    "No live VPN handover, reboot or kernel/network integration tests were performed.",
+    "Debian installation was simulated, not executed. Flatpak was installed into an isolated user installation for verification. Official and Simple packages may coexist; simultaneous backends are intentionally excluded.",
+    "Simple service is disabled by default. Boot protection requires explicit configuration; historical boot-test results do not validate this new passive default.",
+    "Legacy package purge scripts can still affect the official service before migration. No old shared state or credentials were deleted or copied."
+  ]
+}

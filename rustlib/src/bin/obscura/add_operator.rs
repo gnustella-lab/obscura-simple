@@ -23,9 +23,10 @@ fn add_operator_impl(mut users: Vec<String>) -> ! {
 
     let sudo = if nix::unistd::geteuid().is_root() { None } else { Some("sudo") };
 
+    let group = if cfg!(feature = "simple-client") { "obscura-simple" } else { "obscura" };
     let mut failed_any = false;
     for user in &users {
-        let command: Vec<&str> = sudo.into_iter().chain(["usermod", "-a", "-G", "obscura", user.as_str()]).collect();
+        let command: Vec<&str> = sudo.into_iter().chain(["usermod", "-a", "-G", group, user.as_str()]).collect();
         let failed = std::process::Command::new(command[0])
             .args(&command[1..])
             .status()
@@ -35,11 +36,11 @@ fn add_operator_impl(mut users: Vec<String>) -> ! {
         failed_any |= failed;
         if failed {
             match shlex::try_join(command.iter().copied()) {
-                Ok(quoted_command) => eprintln!("Failed to add '{user}' to 'obscura' group using:\n    {quoted_command}"),
+                Ok(quoted_command) => eprintln!("Failed to add '{user}' to '{group}' group using:\n    {quoted_command}"),
                 Err(_) => eprintln!("Failed to add {user}"),
             }
         } else {
-            eprintln!("Added {user} to 'obscura' group.")
+            eprintln!("Added {user} to '{group}' group.")
         }
     }
 

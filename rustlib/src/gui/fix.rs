@@ -11,11 +11,24 @@ pub async fn add_operator() -> Result<(), LinuxFixErrorCode> {
     let Some(user) = current_user_name().await else {
         return Err(LinuxFixErrorCode::UsernameUnknown);
     };
-    run_pkexec(&["obscura", "add-operator", &user], LinuxFixErrorCode::AddOperatorFailed).await
+    run_pkexec(
+        &[
+            if cfg!(feature = "simple-client") {
+                "/usr/bin/obscura-simple"
+            } else {
+                "obscura"
+            },
+            "add-operator",
+            &user,
+        ],
+        LinuxFixErrorCode::AddOperatorFailed,
+    )
+    .await
 }
 
 pub async fn restart_service(enable: bool) -> Result<(), LinuxFixErrorCode> {
-    if enable {
+    // Simple requires explicit administrator opt-in for boot activation.
+    if enable && !cfg!(feature = "simple-client") {
         run_pkexec(
             &[
                 "sh",

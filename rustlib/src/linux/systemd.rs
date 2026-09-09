@@ -2,7 +2,11 @@ use zbus_systemd::systemd1::{ManagerProxy, UnitProxy};
 use zbus_systemd::zbus;
 use zbus_systemd::zbus::proxy::CacheProperties;
 
-pub const UNIT_NAME: &str = "obscura.service";
+pub const UNIT_NAME: &str = if cfg!(feature = "simple-client") {
+    "obscura-simple.service"
+} else {
+    "obscura.service"
+};
 
 #[derive(Debug, Clone, Copy, strum::Display)]
 #[strum(serialize_all = "kebab-case")]

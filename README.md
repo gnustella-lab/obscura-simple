@@ -11,53 +11,120 @@ This is an independent fork of [Sovereign-Engineering/obscuravpn-client](https:/
 
 ## Current release
 
-**[Obscura Simple UI 1.177-15](https://github.com/gnustella-lab/obscura-simple/releases/tag/v1.177-simple-15)** is the current published release.
+**[Obscura Simple 1.177-16](https://github.com/gnustella-lab/obscura-simple/releases/tag/v1.177-simple-16)** adds isolated Linux packaging and a Flatpak frontend.
 
-| Item | Current state |
+| Artifact | Purpose |
 | --- | --- |
-| Release tag | `v1.177-simple-15` |
-| Debian package | `obscura-simple_1.177-15_amd64.deb` |
-| Package and executable version | `1.177-15` |
-| Published architecture | `amd64` |
-| Package target | Ubuntu 24.04 or a system with compatible dependencies |
-| Download size | About 24 MB |
+| `obscura-simple_1.177-16_amd64.deb` | Host service, CLI and native GUI for Ubuntu 24.04-compatible systems |
+| `obscura-simple_1.177-16_x86_64.flatpak` | Sandboxed GUI, requires the matching Simple host service |
+| `SHA256SUMS` | SHA-256 checksums for both downloads |
 
-- [Download the `.deb`](https://github.com/gnustella-lab/obscura-simple/releases/download/v1.177-simple-15/obscura-simple_1.177-15_amd64.deb)
-- [Download `SHA256SUMS`](https://github.com/gnustella-lab/obscura-simple/releases/download/v1.177-simple-15/SHA256SUMS)
-- [Release notes](release-notes/v1.177-simple-15.md) · [All releases](https://github.com/gnustella-lab/obscura-simple/releases)
+- [Download the .deb](https://github.com/gnustella-lab/obscura-simple/releases/download/v1.177-simple-16/obscura-simple_1.177-16_amd64.deb)
+- [Download the Flatpak](https://github.com/gnustella-lab/obscura-simple/releases/download/v1.177-simple-16/obscura-simple_1.177-16_x86_64.flatpak)
+- [Download SHA256SUMS](https://github.com/gnustella-lab/obscura-simple/releases/download/v1.177-simple-16/SHA256SUMS)
+- [Release notes](release-notes/v1.177-simple-16.md)
 
-Release binaries are attached to GitHub releases, not committed to the repository. `tag.json` tracks the upstream version (`1.177`); the Debian `-N` revision and `v1.177-simple-N` tag identify this fork's releases.
+Release binaries are attached to GitHub releases, not committed to this repository. `tag.json` tracks upstream `1.177`; the Debian revision and `v1.177-simple-N` tags identify fork releases.
 
 ## Install or upgrade
 
-Download the `.deb` and `SHA256SUMS` into the same directory, then run:
+The older `1.177-15` package uses upstream file paths and must not be
+installed alongside official Obscura packages. Release `1.177-16`
+introduces separate executables, IPC sockets, GTK application identity,
+autostart entry, operator group, service and persistent state.
+
+Build the isolated package with the command below, then install it explicitly:
 
 ```bash
-sha256sum -c SHA256SUMS && sudo apt install ./obscura-simple_1.177-15_amd64.deb
-sudo obscura add-operator "$USER"
-systemctl status obscura.service --no-pager
+CARGO_BUILD_JOBS=2 ./contrib/bin/build-simple-deb.bash
+sudo apt install ./obscura-simple_1.177-16_amd64.deb
+sudo obscura-simple add-operator "$USER"
+obscura-simple-gui
 ```
 
-The package installs the CLI, GUI, systemd service, desktop entry, icons, and permission setup. It enables and starts the service on installation and restarts an active service during an upgrade.
+Installation does not start, restart or enable either VPN service. The launcher
+is **Obscura Simple (Unofficial)**. Its UI and settings are not the official
+Linux Alpha UI and do not share the official app's saved account or preferences.
+No account data is migrated automatically from old shared directories.
 
-Open **Obscura VPN** from your application launcher, or run:
+Only one VPN backend may run at a time: both retain `/run/obscura.lock`, acquired
+before firewall, tunnel and DNS initialization. The separate package identity
+allows both apps to be installed, not both backends to control networking.
+The Simple installer and GUI do not stop the official service or silently take
+over its boot activation. Starting Simple while the official backend owns the
+lock fails before network changes. Do not enable both services at boot.
+
+Changing the active backend can interrupt connectivity and kill-switch protection.
+When you deliberately choose Simple instead of the official service, stop the
+official service yourself first, then start `obscura-simple.service`. Review boot
+activation separately; Simple's service is disabled by default, so its historical
+boot-protection guarantees apply only after explicitly configuring it for boot.
 
 ```bash
-obscura-gui
+sudo systemctl start obscura-simple.service
+systemctl status obscura-simple.service --no-pager
+obscura-simple login
+obscura-simple status
 ```
 
-Close and reopen an already-running GUI after upgrading so its version matches the service. If permission changes have not reached your desktop session, sign out and back in. `newgrp obscura` refreshes group membership for a terminal shell.
+A paid Obscura account is required for VPN service. Existing accounts can be used,
+but sign in separately in Simple. With its kill switch enabled, disconnecting
+intentionally leaves internet blocked until you change that setting.
 
-An Obscura account is required to connect. You can sign in through the GUI or use the CLI:
+Legacy `1.177-15` package scripts and residual configuration predate isolation.
+Do not purge the legacy package while relying on the official service without
+reviewing its `postrm`: it can disable `obscura.service`. Do not delete shared
+`/var/lib/obscura` or `~/.config/obscura` data as part of migration.
+
+## Flatpak
+
+The Flatpak is **not a standalone VPN backend**. It runs the GUI inside the
+sandbox and communicates only with the matching `obscura-simple 1.177-16`
+host service. The official Alpha service is a different backend and cannot
+satisfy this dependency. Other distributions currently need a separately
+installed matching Simple host service; the provided host package targets
+Ubuntu 24.04-compatible systems.
+
+1. Download both packages and `SHA256SUMS`, then verify with `sha256sum -c SHA256SUMS`.
+2. Install the host `.deb` and add yourself to its operator group as described above.
+3. When deliberately switching away from another VPN backend, stop it yourself and start `obscura-simple.service`. Never enable both services at boot.
+4. Install the Flatpak and launch it:
 
 ```bash
-obscura login
-obscura status
-obscura connect
-obscura disconnect
+flatpak install --user ./obscura-simple_1.177-16_x86_64.flatpak
+flatpak run io.github.gnustella_lab.obscura_simple
 ```
 
-`obscura login` prompts for the account number. With the kill switch enabled, disconnecting the VPN intentionally leaves internet traffic blocked; disable the kill switch in Settings when you want to allow traffic outside the VPN.
+The bundle uses **GNOME Platform 50** from Flathub. The runtime is downloaded
+separately if needed; it is not included in the `.flatpak` file. Single-file
+bundles do not provide an automatic application update repository.
+
+Only the two Simple IPC sockets are exposed, read-only, alongside the display,
+network, tray and a filtered systemd D-Bus connection. There is no full-home,
+full-system-bus or arbitrary host-command permission. Start the host service
+before launching the GUI. **Close and reopen the Flatpak after a service
+restart**, since file-mounted Unix sockets can retain the old inode.
+
+Host setup, operator permissions, native autostart registration and complete
+host debug archives are not performed from the sandbox. The UI explains these
+limits rather than presenting nonworking controls. Use your desktop's Startup
+Applications settings with `flatpak run io.github.gnustella_lab.obscura_simple`
+for GUI autostart. For diagnostics, run `obscura-simple debug-bundle "description"`
+in a host terminal. Starting the GUI at login is separate from enabling the
+host VPN service at boot.
+
+### Build the Flatpak
+
+```bash
+CARGO_BUILD_JOBS=1 ./contrib/bin/build-simple-deb.bash
+./contrib/bin/build-simple-flatpak.bash
+```
+
+The Flatpak builder packages the **same source-built native GUI executable**
+from the `.deb` and executes an ABI/version probe inside GNOME Platform 50
+before exporting the bundle. It does not rebuild Rust inside a Flatpak SDK or
+bundle a host-executing launcher. `flatpak` and the GNOME Platform 50 runtime
+must already be installed. No `flatpak-builder` or extra compiler SDK is needed.
 
 ## Interface
 
@@ -111,10 +178,10 @@ Run the following commands from the repository root. Native builds require Rust/
 
 ```bash
 CARGO_BUILD_JOBS=1 ./contrib/bin/build-simple-deb.bash
-# Output: ./obscura-simple_1.177-15_amd64.deb on an amd64 host
+# Output: ./obscura-simple_1.177-16_amd64.deb on an amd64 host
 ```
 
-This generates the Simple UI resources, builds both release binaries with matching versions, and stages the package and service installation scripts. Nix and Docker are not required for this path. One build job is useful on machines with limited RAM.
+This generates the Simple UI resources, builds both release binaries with matching versions and the `simple-client` feature, and stages the isolated package and passive installation scripts. Nix and Docker are not required for this path. One build job is useful on machines with limited RAM.
 
 ### Develop the GUI
 
@@ -128,8 +195,8 @@ The helper generates resources and builds the debug GUI. It expects the service 
 To build a matching debug CLI/service binary:
 
 ```bash
-OBSCURA_VERSION=v1.177-15 cargo build \
-  --manifest-path rustlib/Cargo.toml --locked --bin obscura
+OBSCURA_VERSION=v1.177-16 cargo build \
+  --manifest-path rustlib/Cargo.toml --locked --features simple-client --bin obscura
 ```
 
 For the detailed UI structure and additional development commands, see [SIMPLE_UI.md](SIMPLE_UI.md). The native wrappers in the repository are development helpers, not the recommended installation path.
@@ -141,10 +208,11 @@ node --check simple-ui/app.js
 node --test simple-ui/official-ui.test.cjs \
   simple-ui/pixel-animation.test.cjs simple-ui/kill-switch.test.cjs
 
-cargo test --manifest-path rustlib/Cargo.toml --locked --lib --bin obscura
+cargo test --manifest-path rustlib/Cargo.toml --release --locked --features simple-client,gui --lib --bin obscura
+python3 contrib/bin/test-simple-package.py obscura-simple_1.177-16_amd64.deb
 
 # With the package installed:
-systemd-analyze verify linux/common/obscura.service
+systemd-analyze verify /usr/lib/systemd/system/obscura-simple.service
 
 # Kernel integration checks in isolated namespaces:
 bash contrib/bin/linux-kill-switch-test.bash
@@ -157,9 +225,9 @@ Node is used for development checks, not required to run the installed app. The 
 For service startup or connection problems:
 
 ```bash
-obscura status --json
-systemctl status obscura.service --no-pager
-journalctl -u obscura.service -n 100 --no-pager
+obscura-simple status --json
+systemctl status obscura-simple.service --no-pager
+journalctl -u obscura-simple.service -n 100 --no-pager
 ```
 
 A service that remains `activating` may be retrying configuration or firewall setup. Check its logs rather than assuming it is crash-looping. A version mismatch usually means the GUI needs reopening after an upgrade or development binaries were built with a different `OBSCURA_VERSION`.

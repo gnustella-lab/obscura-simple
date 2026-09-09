@@ -1,0 +1,10 @@
+[Desktop Entry]
+Type=Application
+Name=Obscura Simple (Unofficial)
+GenericName=VPN Client
+Comment=Unofficial community client for Obscura VPN
+Exec=obscura-simple-gui --xdg-autostart
+Icon=io.github.gnustella_lab.obscura_simple
+Terminal=false
+Categories=Network;Security;
+StartupWMClass=io.github.gnustella_lab.obscura_simple

@@ -31,11 +31,31 @@ pub fn user_config_dir() -> Option<camino::Utf8PathBuf> {
 }
 
 pub fn ui_log_dir() -> Option<camino::Utf8PathBuf> {
-    Some(xdg_base_dir("XDG_STATE_HOME", &[".local", "state"])?.join("obscura").join("logs"))
+    Some(
+        xdg_base_dir("XDG_STATE_HOME", &[".local", "state"])?
+            .join(if cfg!(feature = "simple-client") { "obscura-simple" } else { "obscura" })
+            .join("logs"),
+    )
 }
 
 pub fn ui_config_dir() -> Option<camino::Utf8PathBuf> {
-    Some(user_config_dir()?.join("obscura"))
+    Some(user_config_dir()?.join(if cfg!(feature = "simple-client") { "obscura-simple" } else { "obscura" }))
+}
+
+#[cfg(all(test, feature = "simple-client"))]
+mod simple_identity_tests {
+    #[test]
+    fn ipc_and_service_do_not_target_the_official_client() {
+        assert_eq!(super::ipc::SOCKET_PATH, "/run/obscura-simple.sock");
+        assert_eq!(super::ipc::LIVE_GROUPS_SOCKET_PATH, "/run/obscura-simple-live-groups.sock");
+        assert_eq!(super::systemd::UNIT_NAME, "obscura-simple.service");
+        if let Some(config) = super::ui_config_dir() {
+            assert!(config.ends_with("obscura-simple"));
+        }
+        if let Some(logs) = super::ui_log_dir() {
+            assert!(logs.ends_with("obscura-simple/logs"));
+        }
+    }
 }
 
 fn xdg_base_dir(env_var: &str, home_relative: &[&str]) -> Option<camino::Utf8PathBuf> {

@@ -40,7 +40,11 @@ console.error = log.bind(null, "error:");
 pub(crate) fn build_webview(gtk_init: GtkInitToken, command_context: WebviewCmdContext) -> WebView {
     let user_content_manager = webkit6::UserContentManager::new();
 
-    for capture_script in [JS_ERROR_CAPTURE, JS_LOG_CAPTURE] {
+    let error_capture = format!(
+        "window.obscuraFlatpak = {};\n{JS_ERROR_CAPTURE}",
+        std::path::Path::new("/.flatpak-info").exists()
+    );
+    for capture_script in [error_capture.as_str(), JS_LOG_CAPTURE] {
         let script = UserScript::new(
             capture_script,
             UserContentInjectedFrames::AllFrames,
@@ -75,11 +79,20 @@ pub(crate) fn build_webview(gtk_init: GtkInitToken, command_context: WebviewCmdC
     let context = WebContext::new();
     context.register_uri_scheme("web-ui", serve_web_ui_resource);
 
-    let webview = WebView::builder()
+    let mut builder = WebView::builder()
         .settings(&settings)
         .user_content_manager(&user_content_manager)
-        .web_context(&context)
-        .build();
+        .web_context(&context);
+    if cfg!(feature = "simple-client") {
+        let data = glib::user_data_dir().join("obscura-simple/webkit");
+        let cache = glib::user_cache_dir().join("obscura-simple/webkit");
+        let session = match (data.to_str(), cache.to_str()) {
+            (Some(data), Some(cache)) => webkit6::NetworkSession::new(Some(data), Some(cache)),
+            _ => webkit6::NetworkSession::new_ephemeral(),
+        };
+        builder = builder.network_session(&session);
+    }
+    let webview = builder.build();
 
     webview.connect_decide_policy(decide_policy);
 

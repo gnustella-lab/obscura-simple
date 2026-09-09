@@ -8,10 +8,18 @@ use crate::int_helper::u32_into_usize;
 use crate::manager_cmd::{ManagerCmd, ManagerCmdErrorCode};
 use crate::version::release_version;
 
-pub const SOCKET_PATH: &str = "/run/obscura.sock";
+pub const SOCKET_PATH: &str = if cfg!(feature = "simple-client") {
+    "/run/obscura-simple.sock"
+} else {
+    "/run/obscura.sock"
+};
 
 /// Serves the same protocol as [`SOCKET_PATH`], but is connectable by everyone. The service only grants access if the peer uid is a current member of the service's group in the user database, so membership changes take effect without re-login.
-pub const LIVE_GROUPS_SOCKET_PATH: &str = "/run/obscura-live-groups.sock";
+pub const LIVE_GROUPS_SOCKET_PATH: &str = if cfg!(feature = "simple-client") {
+    "/run/obscura-simple-live-groups.sock"
+} else {
+    "/run/obscura-live-groups.sock"
+};
 
 #[derive(Debug, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]

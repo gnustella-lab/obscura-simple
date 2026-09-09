@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>Obscura VPN</title>
+<title>Obscura Simple</title>
 <script>if(window.obscuraNativeSidebar) document.documentElement.classList.add("native-shell");</script>
 <link rel="stylesheet" href="./style.css" />
 </head>
@@ -12,7 +12,7 @@
 <div id="app">
   <header class="topbar"><h1 id="pageTitle">Connection</h1></header>
   <nav class="nav" id="nav" aria-label="Main navigation">
-    <div class="sidebar-brand"><img src="./assets/app-icon.png" width="24" height="24" alt="" /><span>Obscura VPN</span></div>
+    <div class="sidebar-brand"><img src="./assets/app-icon.png" width="24" height="24" alt="" /><span>Obscura Simple</span></div>
     <button data-view="connection" class="nav-btn active"><span class="nav-icon" aria-hidden="true"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 960 960" focusable="false">
   <path d="M480,880q-83,0 -156,-31.5t-127,-86q-54,-54.5 -85.5,-128T80,478q0,-83 31.5,-155.5T197,196q54,-54 127,-85t156,-31q26,0 50.5,4t49.5,9l-20,57q-20,-6 -40,-8t-40,-2q-42,35 -62,86t-34,104h196v60L373,390q-3,22 -4.5,44t-1.5,44q0,23 1.5,45.5T373,569h215q3,-23 4.5,-48t1.5,-61h60q0,36 -2,61t-4,48h160q6,-23 9,-47.5t3,-61.5h60q0,94 -31.5,171T763,763.5q-54,55.5 -127,86T480,880ZM152,569h159q-2,-23 -3,-45.5t-1,-45.5q0,-22 1,-44t4,-44L152,390q-6,22 -9,43.5t-3,44.5q0,23 3,45.5t9,45.5ZM395,810q-27,-42 -44.5,-87.5T322,629L172,629q35,66 93.5,111.5T395,810ZM172,330h151q10,-48 27.5,-93t43.5,-86q-73,18 -131,65t-91,114ZM480,822q38,-39 61,-89t36,-104L384,629q12,54 35,103.5t61,89.5ZM566,809q71,-22 129,-68t93,-112L639,629q-11,48 -28.5,93.5T566,809ZM674,400q-14,0 -24,-10t-10,-24v-132q0,-14 10,-24t24,-10h6v-40q0,-33 23.5,-56.5T760,80q33,0 56.5,23.5T840,160v40h6q14,0 24,10t10,24v132q0,14 -10,24t-24,10L674,400ZM720,200h80v-40q0,-17 -11.5,-28.5T760,120q-17,0 -28.5,11T720,158v42Z" fill="#222222" />
 </svg></span>Connection</button>
@@ -49,13 +49,20 @@
     <section id="view-degraded" class="view hidden">
       <div class="card warning">
         <h3>Service unavailable</h3>
-        <p id="degradedMsg">Obscura service is not running.</p>
+        <p id="degradedMsg">Obscura Simple service is not running.</p>
+        <p class="muted small">Obscura Simple uses a separate service and account settings. Only one VPN backend can run at a time. Do not restart this service while the official Obscura service is in use.</p>
+        <div class="flatpak-only hidden">
+          <p>This Flatpak contains the interface only. Install the matching <code>obscura-simple 1.177-16</code> host package first, then grant access in a host terminal:</p>
+          <p><code>sudo obscura-simple add-operator "$USER"</code></p>
+          <p>After deliberately stopping any other VPN backend, start <code>obscura-simple.service</code> on the host. Close and reopen this Flatpak after starting or restarting the service.</p>
+          <p><a href="https://github.com/gnustella-lab/obscura-simple#flatpak" target="_blank" rel="noopener">Flatpak setup instructions</a></p>
+        </div>
         <div class="row gap">
           <button id="btnRestartService" class="btn primary">Restart service</button>
           <button id="btnAddOperator" class="btn">Add permission</button>
         </div>
         <p class="muted small" id="degradedDetail"></p>
-        <p class="muted small" id="degradedHint">If initialization does not finish, check the service logs: <code>journalctl -u obscura.service -n 50 --no-pager</code> — common cause is a missing <code>libtss2-tctildr0t64</code> (<code>sudo apt install libtss2-tctildr0t64</code>).</p>
+        <p class="muted small" id="degradedHint">If initialization does not finish, check the service logs: <code>journalctl -u obscura-simple.service -n 50 --no-pager</code> — common cause is a missing <code>libtss2-tctildr0t64</code> (<code>sudo apt install libtss2-tctildr0t64</code>).</p>
       </div>
     </section>
 
@@ -63,7 +70,7 @@
     <section id="view-login" class="view hidden">
       <div class="login-layout">
         <div class="login-card card">
-          <h2 id="loginTitle">Welcome to Obscura</h2>
+          <h2 id="loginTitle">Welcome to Obscura Simple</h2>
           <p class="muted" id="loginSubtitle">Create an account or sign in with your existing number.</p>
 
           <div id="loginCreateBox">
@@ -167,9 +174,10 @@
       <div class="stack">
         <div class="card">
           <h3>General</h3>
-          <label class="switch"><input type="checkbox" id="toggleLoginItem" /> <span>Launch Obscura VPN at login</span></label>
+          <label class="switch"><input type="checkbox" id="toggleLoginItem" /> <span>Launch Obscura Simple at login</span></label>
+          <p class="flatpak-only hidden small muted">Configure Flatpak launch at login using your desktop startup settings. The native autostart switch is not available inside this sandbox.</p>
           <label class="switch"><input type="checkbox" id="toggleAutoConnect" /> <span>Automatically connect at launch</span></label>
-          <p class="setting-description muted">Connect to the last chosen location when Obscura starts. If you last used Quick Connect, Obscura will choose a location automatically.</p>
+          <p class="setting-description muted">Connect to the last chosen location when Obscura Simple starts. If you last used Quick Connect, Obscura will choose a location automatically.</p>
         </div>
         <div class="card" id="killSwitchSettings">
           <h3>Network</h3>
@@ -219,15 +227,17 @@
         <div class="card">
           <img class="help-mascot" src="./assets/thinking-mascot.svg" width="100" height="138" alt="" />
           <h2>Having trouble?</h2>
-          <p>Reach out to <a href="mailto:support@obscura.net">support@obscura.net</a></p>
+          <p>For this unofficial client, <a href="https://github.com/gnustella-lab/obscura-simple/issues" target="_blank" rel="noopener">report an Obscura Simple issue</a>. Do not include account numbers or credentials.</p>
+          <p>For VPN service, account, or billing help, contact <a href="mailto:support@obscura.net">support@obscura.net</a>.</p>
           <details class="feedback-details"><summary>Include a description of the problem</summary><div class="field">
             <label for="feedbackInput">Describe the problem (for debug bundle)</label>
             <textarea id="feedbackInput" rows="3" placeholder="What happened?"></textarea>
           </div>
           </details><button id="btnDebugBundle" class="btn primary">Create Debugging Archive</button>
+          <p class="flatpak-only hidden small muted">Create a complete debugging archive from a host terminal using <code>obscura-simple debug-bundle "description"</code>. Host service logs are not exposed to this sandbox.</p>
           <p class="small muted" id="debugPath"></p>
           <button id="btnRevealDebug" class="btn small hidden">Show file</button>
-          <h3 class="social-heading">Socials</h3><p class="muted">Connect with us via</p>
+          <h3 class="social-heading">Socials</h3><p class="muted">Follow the Obscura VPN service via</p>
           <div class="social-links"><a class="discord-link" href="https://discord.gg/xsP2Fp7s6r" target="_blank" rel="noopener" aria-label="Obscura on Discord" title="Discord"><svg viewBox="0 0 28 22" aria-hidden="true"><path d="M23.5 2A23 23 0 0 0 18 .3l-.7 1.4a21 21 0 0 0-6.6 0L10 .3A23 23 0 0 0 4.5 2C1 7 .1 12 .5 17a23 23 0 0 0 6.8 3.5l1.4-2.3-2.1-1a17 17 0 0 0 14.8 0l-2.1 1 1.4 2.3a23 23 0 0 0 6.8-3.5c.5-6-1-11-4-15ZM9.5 14c-1.3 0-2.3-1.3-2.3-2.9s1-2.9 2.3-2.9 2.3 1.3 2.3 2.9-1 2.9-2.3 2.9Zm9 0c-1.3 0-2.3-1.3-2.3-2.9s1-2.9 2.3-2.9 2.3 1.3 2.3 2.9-1 2.9-2.3 2.9Z"/></svg></a><a class="matrix-link" href="https://matrix.to/#/!CznDYbvmUUGxsJaWuW:matrix.social.obscuravpn.io?via=matrix.social.obscuravpn.io&amp;via=matrix.org" target="_blank" rel="noopener" aria-label="Obscura on Matrix" title="Matrix">[m]</a><a href="https://x.com/obscuravpn" target="_blank" rel="noopener" aria-label="Obscura on X" title="X">𝕏</a></div>
         </div>
       </div>
@@ -247,7 +257,8 @@
 <path fill-rule="evenodd" clip-rule="evenodd" d="M39.0855 27.0006H21.6927V0.333984H26.951V8.71246H39.0855V27.0006ZM26.951 13.6818V22.0602H33.9139V13.6818H26.951Z" />
 <path fill-rule="evenodd" clip-rule="evenodd" d="M0.890625 27.0006V8.71246H18.2835V27.0006H0.890625ZM6.14893 13.6818V22.0602H13.1118V13.6818H6.14893Z" />
 </svg></h2>
-          <p class="muted" id="aboutVersion">v1.177-15</p>
+          <p>Obscura Simple, an unofficial community client for Obscura VPN. Independently maintained, not the official Obscura app.</p>
+          <p class="muted" id="aboutVersion">v1.177-16</p>
           <a href="https://github.com/gnustella-lab/obscura-simple/releases/latest" target="_blank" rel="noopener" class="btn primary">Check for updates ↗</a>
           <p class="about-copyright muted">© Sovereign Engineering Inc. All rights reserved.</p>
           <div class="row center gap">

@@ -5,6 +5,36 @@ const { test } = require('node:test');
 const context = vm.createContext({ window: {}, document: { addEventListener() {} } });
 vm.runInContext(fs.readFileSync(`${__dirname}/app.js`, 'utf8'), context);
 
+test('Simple identifies its own app and never directs recovery to the official service', () => {
+  const html = fs.readFileSync(`${__dirname}/index.html`, 'utf8');
+  const js = fs.readFileSync(`${__dirname}/app.js`, 'utf8');
+  assert.match(html, /<title>Obscura Simple<\/title>/);
+  assert.match(html, /not the official Obscura app/);
+  assert.match(html, /gnustella-lab\/obscura-simple\/issues/);
+  assert.match(html, /Only one VPN backend can run at a time/);
+  assert.doesNotMatch(html + js, /\bobscura\.service\b/);
+  assert.match(js, /Welcome to Obscura Simple/);
+});
+
+test('Flatpak blocks host-only actions before reaching the bridge', async () => {
+  const calls = [];
+  const sandbox = vm.createContext({
+    document: { addEventListener() {} },
+    window: { obscuraFlatpak: true, webkit: { messageHandlers: { commandBridge: {
+      postMessage(json) { calls.push(JSON.parse(json)); return '{}'; }
+    } } } },
+    console: { log() {} }
+  });
+  vm.runInContext(fs.readFileSync(`${__dirname}/app.js`, 'utf8'), sandbox);
+  for (const command of ['restartService', 'linuxAddOperator', 'registerAsLoginItem', 'unregisterAsLoginItem', 'debugBundle']) {
+    await assert.rejects(sandbox.invoke(command), /configured on the host/);
+  }
+  assert.equal(calls.length, 0);
+  await sandbox.invoke('getOsStatus');
+  assert.equal(calls.length, 1);
+  assert.deepEqual(calls[0], { getOsStatus: {} });
+});
+
 test('disconnected traffic is classified using acknowledged protection', () => {
   assert.equal(context.connectionProtection({ disconnected: {} }, 'blocking').detail, 'Internet blocked by kill switch');
   assert.equal(context.connectionProtection({ disconnected: {} }, 'inactive').detail, 'Traffic is vulnerable');

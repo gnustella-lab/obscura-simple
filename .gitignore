@@ -27,3 +27,8 @@ result-*
 *.rpm
 *.pkg.tar.zst
 *.deb
+*.flatpak
+/graphify-out/
+/verification/
+/obscura-simple_*.sha256
+/SHA256SUMS

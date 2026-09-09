@@ -25,7 +25,9 @@ use std::process::ExitCode;
 use std::sync::Arc;
 
 #[derive(Parser)]
-#[command(name = "obscura-gui", version = release_version())]
+#[command(version = release_version())]
+#[cfg_attr(feature = "simple-client", command(name = "obscura-simple-gui"))]
+#[cfg_attr(not(feature = "simple-client"), command(name = "obscura-gui"))]
 struct GuiArgs {
     #[arg(long, help = "Use in autostart entries")]
     xdg_autostart: bool,

@@ -269,11 +269,21 @@ impl Tray for TrayState {
     const MENU_ON_ACTIVATE: bool = true;
 
     fn id(&self) -> String {
-        "net.obscura.vpn.gui".to_owned()
+        (if cfg!(feature = "simple-client") {
+            "io.github.gnustella_lab.obscura_simple"
+        } else {
+            "net.obscura.vpn.gui"
+        })
+        .to_owned()
     }
 
     fn title(&self) -> String {
-        "Obscura VPN".to_owned()
+        (if cfg!(feature = "simple-client") {
+            "Obscura Simple (Unofficial)"
+        } else {
+            "Obscura VPN"
+        })
+        .to_owned()
     }
 
     fn status(&self) -> Status {
@@ -304,7 +314,12 @@ impl Tray for TrayState {
         ToolTip {
             icon_name: String::new(),
             icon_pixmap: Vec::new(),
-            title: "Obscura VPN".to_owned(),
+            title: (if cfg!(feature = "simple-client") {
+                "Obscura Simple (Unofficial)"
+            } else {
+                "Obscura VPN"
+            })
+            .to_owned(),
             description: status_line(&self.os_status),
         }
     }

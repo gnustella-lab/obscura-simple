@@ -4,8 +4,24 @@ use super::status::LoginItemStatus;
 use super::user_config_dir;
 use camino::Utf8PathBuf;
 
-const ENTRY_FILE_NAME: &str = "net.obscura.vpn.gui.desktop";
-const ENTRY: &str = include_str!("autostart.desktop");
+const ENTRY_FILE_NAME: &str = if cfg!(feature = "simple-client") {
+    "io.github.gnustella_lab.obscura_simple.desktop"
+} else {
+    "net.obscura.vpn.gui.desktop"
+};
+const ENTRY: &str = if cfg!(feature = "simple-client") {
+    include_str!("autostart-simple.desktop")
+} else {
+    include_str!("autostart.desktop")
+};
+
+#[cfg(all(test, feature = "simple-client"))]
+#[test]
+fn autostart_targets_only_simple() {
+    assert_eq!(ENTRY_FILE_NAME, "io.github.gnustella_lab.obscura_simple.desktop");
+    assert!(ENTRY.contains("Exec=obscura-simple-gui --xdg-autostart"));
+    assert!(!ENTRY.contains("net.obscura.vpn.gui"));
+}
 
 fn entry_path() -> Option<Utf8PathBuf> {
     Some(user_config_dir()?.join("autostart").join(ENTRY_FILE_NAME))

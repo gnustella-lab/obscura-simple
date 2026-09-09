@@ -1,5 +1,8 @@
 // Simple Obscura VPN GUI - vanilla JS (English)
 async function invoke(cmd, args = {}) {
+  if (window.obscuraFlatpak && ['restartService', 'linuxAddOperator', 'registerAsLoginItem', 'unregisterAsLoginItem', 'debugBundle'].includes(cmd)) {
+    throw new Error('This operation must be configured on the host. See the Flatpak setup instructions.');
+  }
   const json = JSON.stringify({ [cmd]: args });
   if (cmd !== 'jsonFfiCmd') console.log('[invoke]', cmd, args);
   const res = await window.webkit.messageHandlers.commandBridge.postMessage(json);
@@ -180,8 +183,8 @@ function render(){
   }
   appStatus = latestAppStatus(serviceStatus);
   if(!appStatus){ $("#splashDetail").textContent="Loading status..."; showView("splash"); return; }
-  $("#appVersion").textContent = osStatus.srcVersion || "v1.177-15";
-  $("#aboutVersion").textContent = osStatus.srcVersion || "v1.177-15";
+  $("#appVersion").textContent = osStatus.srcVersion || "v1.177-16";
+  $("#aboutVersion").textContent = osStatus.srcVersion || "v1.177-16";
   if(!appStatus.accountId || appStatus.inNewAccountFlow){ renderLogin(); showView("login"); return; }
   // Backend is the source of truth so the native left sidebar and the web
   // top bar stay in sync (same as React `<Routes location={osStatus.navigationView}>`).
@@ -213,10 +216,10 @@ function renderLogin(){
     $("#payLink").href = `https://obscura.com/pay#account_id=${encodeURIComponent(hasGenerated)}`;
     $("#accountInput").value = formatPartial(hasGenerated);
   } else {
-    $("#loginTitle").textContent="Welcome to Obscura"; $("#loginSubtitle").textContent="Create an account or sign in with your existing number.";
+    $("#loginTitle").textContent="Welcome to Obscura Simple"; $("#loginSubtitle").textContent="Create an account or sign in with your existing number.";
     $("#loginCreateBox").classList.remove("hidden"); $("#loginGeneratedBox").classList.add("hidden");
   }
-  $("#aboutVersion").textContent = osStatus?.srcVersion || "v1.177-15";
+  $("#aboutVersion").textContent = osStatus?.srcVersion || "v1.177-16";
 }
 function renderConnection(){
   const vpnStatus=appStatus.vpnStatus; const isConnected=vpnConnected(vpnStatus); const isConnecting=!!vpnStatus.connecting;
@@ -484,7 +487,16 @@ function renderSettings(){
   const mode = appStatus.useSystemDns ? "system" : "obscura";
   $$('input[name="dnsMode"]').forEach(r=> r.checked = r.value===mode);
 }
+function configureFlatpakUI() {
+  if (!window.obscuraFlatpak) return;
+  $$('.flatpak-only').forEach(element => element.classList.remove('hidden'));
+  for (const id of ['#btnRestartService', '#btnAddOperator', '#btnDebugBundle']) $(id).classList.add('hidden');
+  $('#toggleLoginItem').disabled = true;
+  $('#toggleLoginItem').closest('label').classList.add('hidden');
+  $('#degradedHint').classList.add('hidden');
+}
 document.addEventListener("DOMContentLoaded", ()=>{
+  configureFlatpakUI();
   buildPixelGrid();
   let motion="system";try{motion=localStorage.getItem("obscura-pixel-motion") || "system";}catch{}
   setPixelMotion(motion);
@@ -518,9 +530,9 @@ document.addEventListener("DOMContentLoaded", ()=>{
     catch(e){
       const raw = e.message || String(e);
       let hint = raw;
-      if(raw.includes("serviceEnableAndRestartFailed")) hint = "Enable+restart failed (auth dismissed? pkexec missing?). Try in terminal: sudo systemctl enable --now obscura.service";
-      else if(raw.includes("serviceStartTimeout")) hint = "Service initialization is still pending. Check: journalctl -u obscura.service -n 50 --no-pager";
-      else if(raw.includes("serviceStartFailed")) hint = "Service entered failed state. Run: journalctl -u obscura.service -n 50 --no-pager";
+      if(raw.includes("serviceEnableAndRestartFailed")) hint = "Enable+restart failed (auth dismissed? pkexec missing?). Try in terminal: sudo systemctl enable --now obscura-simple.service";
+      else if(raw.includes("serviceStartTimeout")) hint = "Service initialization is still pending. Check: journalctl -u obscura-simple.service -n 50 --no-pager";
+      else if(raw.includes("serviceStartFailed")) hint = "Service entered failed state. Run: journalctl -u obscura-simple.service -n 50 --no-pager";
       toast(hint, 6000);
     }
   };

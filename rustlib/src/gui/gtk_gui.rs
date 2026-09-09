@@ -63,7 +63,11 @@ pub(crate) fn run_gtk_app(
     register_gresource(include_bytes!(concat!(env!("OBSCURA_GRESOURCES_DIR"), "/webui.gresource")));
 
     let app = gtk::Application::builder()
-        .application_id("net.obscura.vpn.gui")
+        .application_id(if cfg!(feature = "simple-client") {
+            "io.github.gnustella_lab.obscura_simple"
+        } else {
+            "net.obscura.vpn.gui"
+        })
         .flags(gio::ApplicationFlags::HANDLES_OPEN)
         .build();
 
@@ -258,7 +262,11 @@ fn open_app_url(
 
 fn build_primary_window(gtk_init: GtkInitToken, command_context: WebviewCmdContext) -> (gtk::ApplicationWindow, ListBox, WebView) {
     let window = gtk::ApplicationWindow::builder()
-        .title("Obscura VPN")
+        .title(if cfg!(feature = "simple-client") {
+            "Obscura Simple (Unofficial)"
+        } else {
+            "Obscura VPN"
+        })
         .hide_on_close(true)
         .default_width(900)
         .default_height(650)

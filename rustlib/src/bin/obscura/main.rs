@@ -163,7 +163,9 @@ impl ServiceCommand {
 }
 
 #[derive(Parser)]
-#[command(name = "obscura", version = release_version())]
+#[command(version = release_version())]
+#[cfg_attr(feature = "simple-client", command(name = "obscura-simple"))]
+#[cfg_attr(not(feature = "simple-client"), command(name = "obscura"))]
 pub struct Cli {
     #[command(subcommand)]
     command: Command,

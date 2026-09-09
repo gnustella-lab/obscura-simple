@@ -180,8 +180,8 @@ function render(){
   }
   appStatus = latestAppStatus(serviceStatus);
   if(!appStatus){ $("#splashDetail").textContent="Loading status..."; showView("splash"); return; }
-  $("#appVersion").textContent = osStatus.srcVersion || "v1.177-12";
-  $("#aboutVersion").textContent = osStatus.srcVersion || "v1.177-12";
+  $("#appVersion").textContent = osStatus.srcVersion || "v1.177-13";
+  $("#aboutVersion").textContent = osStatus.srcVersion || "v1.177-13";
   if(!appStatus.accountId || appStatus.inNewAccountFlow){ renderLogin(); showView("login"); return; }
   // Backend is the source of truth so the native left sidebar and the web
   // top bar stay in sync (same as React `<Routes location={osStatus.navigationView}>`).
@@ -216,7 +216,7 @@ function renderLogin(){
     $("#loginTitle").textContent="Welcome to Obscura"; $("#loginSubtitle").textContent="Create an account or sign in with your existing number.";
     $("#loginCreateBox").classList.remove("hidden"); $("#loginGeneratedBox").classList.add("hidden");
   }
-  $("#aboutVersion").textContent = osStatus?.srcVersion || "v1.177-12";
+  $("#aboutVersion").textContent = osStatus?.srcVersion || "v1.177-13";
 }
 function renderConnection(){
   const vpnStatus=appStatus.vpnStatus; const isConnected=vpnConnected(vpnStatus); const isConnecting=!!vpnStatus.connecting;

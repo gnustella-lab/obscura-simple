@@ -40,7 +40,7 @@ else
 fi
 VERSION="${VERSION#v}"
 VERSION="${VERSION%%-*}"
-DEB_VERSION="${VERSION}-12"
+DEB_VERSION="${VERSION}-13"
 if [ -z "$OUT" ]; then
   OUT="$REPO_ROOT/obscura-simple_${DEB_VERSION}_${ARCH}.deb"
 fi
@@ -105,7 +105,7 @@ mkdir -p "$STAGING/usr/share/doc/obscura-simple"
 cat > "$STAGING/usr/share/doc/obscura-simple/changelog.Debian" <<EOF
 obscura-simple (${DEB_VERSION}) stable; urgency=low
 
-  * Release ${DEB_VERSION}: refine the official-style GTK/WebKit interface and display location cards by region.
+  * Release ${DEB_VERSION}: remove connection pixel gaps and use white text on orange buttons in both themes.
 
  -- Obscura Repository Signer <packages@obscura.com>  $(date -uR)
 EOF

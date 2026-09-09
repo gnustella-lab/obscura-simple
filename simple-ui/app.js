@@ -180,8 +180,8 @@ function render(){
   }
   appStatus = latestAppStatus(serviceStatus);
   if(!appStatus){ $("#splashDetail").textContent="Loading status..."; showView("splash"); return; }
-  $("#appVersion").textContent = osStatus.srcVersion || "v1.177-10";
-  $("#aboutVersion").textContent = osStatus.srcVersion || "v1.177-10";
+  $("#appVersion").textContent = osStatus.srcVersion || "v1.177-12";
+  $("#aboutVersion").textContent = osStatus.srcVersion || "v1.177-12";
   if(!appStatus.accountId || appStatus.inNewAccountFlow){ renderLogin(); showView("login"); return; }
   // Backend is the source of truth so the native left sidebar and the web
   // top bar stay in sync (same as React `<Routes location={osStatus.navigationView}>`).
@@ -216,12 +216,12 @@ function renderLogin(){
     $("#loginTitle").textContent="Welcome to Obscura"; $("#loginSubtitle").textContent="Create an account or sign in with your existing number.";
     $("#loginCreateBox").classList.remove("hidden"); $("#loginGeneratedBox").classList.add("hidden");
   }
-  $("#aboutVersion").textContent = osStatus?.srcVersion || "v1.177-10";
+  $("#aboutVersion").textContent = osStatus?.srcVersion || "v1.177-12";
 }
 function renderConnection(){
   const vpnStatus=appStatus.vpnStatus; const isConnected=vpnConnected(vpnStatus); const isConnecting=!!vpnStatus.connecting;
   const connectingCity=getCityFromStatus(vpnStatus); const lastCity = appStatus.lastChosenExit?.city; const targetCity = connectingCity || lastCity;
-  let title="Not connected to Obscura", subtitle=appStatus.firewallStatus==="blocking"?"Internet is blocked until you connect":"Connect to browse privately";
+  let title="Not connected to Obscura", subtitle=appStatus.firewallStatus==="blocking"?"Internet is blocked until you connect":"Connect to enjoy seamless privacy protection";
   if(!osStatus.internetAvailable){ title="No internet"; subtitle="Connect to the internet to use VPN"; }
   else if(appStatus.account?.account_info?.active===false){ title="Account expired"; subtitle="Renew to continue"; }
   else if(isConnected){ const exit=vpnStatus.connected.exit; title=`Connected to ${stripEmoji(exit.city_name)}`; subtitle=`${exit.country_code ? exit.country_code.toUpperCase() : ""} • ${exit.provider_id}`; }
@@ -383,8 +383,7 @@ function renderLocation(){
   filtered.forEach(e=>(groups[locationRegion(e.country_code)] ||= []).push(e));
   Object.keys(groups).sort((a,b)=>(order.indexOf(a)<0?99:order.indexOf(a))-(order.indexOf(b)<0?99:order.indexOf(b)) || a.localeCompare(b)).forEach(region=>{
     addHeading(region);
-    const countries={};groups[region].forEach(exit=>(countries[exit.country_code] ||= []).push(exit));
-    Object.keys(countries).sort((a,b)=>countryName(a).localeCompare(countryName(b))).forEach(code=>list.appendChild(countryGroup(code,countries[code],makeRow,locationCountriesOpen,query)));
+    groups[region].sort((a,b)=>countryName(a.country_code).localeCompare(countryName(b.country_code)) || stripEmoji(a.city_name).localeCompare(stripEmoji(b.city_name))).forEach(exit=>list.appendChild(makeRow(exit,"region")));
   });
   restoreCountryFocus(list,focus);
   if(!filtered.length){
@@ -452,7 +451,7 @@ function renderAccount(){
   }
   card.innerHTML=`<img class="account-status-icon" src="./assets/${icon}" alt="" /><div class="account-status-copy"><h2>${heading}</h2><p>${escHtml(detail)}</p></div><div class="account-status-actions"><button class="btn text small" onclick="pollAccountNow()">↻ Refresh</button><a class="btn primary" href="https://obscura.com/pay#account_id=${encodeURIComponent(appStatus.accountId)}" target="_blank" rel="noopener">Manage Payments ↗</a></div>`;
   $("#accountNumberDisplay").textContent=accountRevealed?formatPartial(appStatus.accountId || ""):"XXXX – XXXX – XXXX – XXXX – XXXX";
-  $("#btnToggleAccount").textContent=accountRevealed?"Hide":"Show";
+  $("#btnToggleAccount").setAttribute("aria-pressed",String(accountRevealed));
   $("#btnToggleAccount").setAttribute("aria-label",accountRevealed?"Hide account number":"Show account number");
   $("#manageTunnelsLink").href=`https://obscura.com/account/tunnels#account_id=${encodeURIComponent(appStatus.accountId)}`;
 }

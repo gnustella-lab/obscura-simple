@@ -100,7 +100,7 @@
         <div class="hero">
           <img src="./assets/not-connected-mascot.svg" id="connectionMascot" class="hero-logo" width="76" height="76" alt="" />
           <h2 id="connTitle">Not connected to Obscura</h2>
-          <p class="muted" id="connSubtitle">Connect to browse privately</p>
+           <p class="muted" id="connSubtitle">Connect to enjoy seamless privacy protection</p>
           <div id="connActions">
             <button id="btnQuickConnect" class="btn primary large"><img class="quick-icon" src="./assets/bolt.badge.automatic.fill.svg" alt="" /> Quick Connect</button>
             <button id="btnCancelConnect" class="btn hidden">Cancel</button>
@@ -154,7 +154,7 @@
       <div class="stack account-sections">
         <div class="card account-status" id="accountStatusCard"></div>
         <div class="card account-number-card">
-          <div class="row gap"><h2 class="flex-1">Account Number</h2><button id="btnToggleAccount" class="btn text small" aria-label="Show account number">Show</button><button id="btnCopyAccount" class="btn text small">Copy</button><button id="btnLogout" class="btn text danger">Log out</button></div>
+          <div class="row gap"><h2>Account Number</h2><button id="btnToggleAccount" class="btn text small account-tool" aria-label="Show account number" aria-pressed="false"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M2 12s3-6 10-6 10 6 10 6-3 6-10 6S2 12 2 12Z"/><circle cx="12" cy="12" r="3"/></svg></button><button id="btnCopyAccount" class="btn text small account-tool" aria-label="Copy account number" title="Copy account number"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 5H5v16h14V5h-4"/><rect x="9" y="3" width="6" height="4" rx="1"/></svg></button><button id="btnLogout" class="btn text danger">⇥ Log out</button></div>
           <code id="accountNumberDisplay" class="mono">••••</code>
         </div>
         <div class="card configurations-card"><h2>WireGuard® Configurations</h2><a id="manageTunnelsLink" href="#" target="_blank" rel="noopener" class="btn primary">Manage Configurations ↗</a></div>
@@ -228,7 +228,7 @@
           <p class="small muted" id="debugPath"></p>
           <button id="btnRevealDebug" class="btn small hidden">Show file</button>
           <h3 class="social-heading">Socials</h3><p class="muted">Connect with us via</p>
-          <div class="social-links"><a href="https://discord.gg/xsP2Fp7s6r" target="_blank" rel="noopener">Discord</a><a href="https://matrix.to/#/!CznDYbvmUUGxsJaWuW:matrix.social.obscuravpn.io?via=matrix.social.obscuravpn.io&amp;via=matrix.org" target="_blank" rel="noopener">[m] Matrix</a><a href="https://x.com/obscuravpn" target="_blank" rel="noopener" aria-label="Obscura on X">𝕏</a></div>
+          <div class="social-links"><a class="discord-link" href="https://discord.gg/xsP2Fp7s6r" target="_blank" rel="noopener" aria-label="Obscura on Discord" title="Discord"><svg viewBox="0 0 28 22" aria-hidden="true"><path d="M23.5 2A23 23 0 0 0 18 .3l-.7 1.4a21 21 0 0 0-6.6 0L10 .3A23 23 0 0 0 4.5 2C1 7 .1 12 .5 17a23 23 0 0 0 6.8 3.5l1.4-2.3-2.1-1a17 17 0 0 0 14.8 0l-2.1 1 1.4 2.3a23 23 0 0 0 6.8-3.5c.5-6-1-11-4-15ZM9.5 14c-1.3 0-2.3-1.3-2.3-2.9s1-2.9 2.3-2.9 2.3 1.3 2.3 2.9-1 2.9-2.3 2.9Zm9 0c-1.3 0-2.3-1.3-2.3-2.9s1-2.9 2.3-2.9 2.3 1.3 2.3 2.9-1 2.9-2.3 2.9Z"/></svg></a><a class="matrix-link" href="https://matrix.to/#/!CznDYbvmUUGxsJaWuW:matrix.social.obscuravpn.io?via=matrix.social.obscuravpn.io&amp;via=matrix.org" target="_blank" rel="noopener" aria-label="Obscura on Matrix" title="Matrix">[m]</a><a href="https://x.com/obscuravpn" target="_blank" rel="noopener" aria-label="Obscura on X" title="X">𝕏</a></div>
         </div>
       </div>
     </section>
@@ -247,7 +247,7 @@
 <path fill-rule="evenodd" clip-rule="evenodd" d="M39.0855 27.0006H21.6927V0.333984H26.951V8.71246H39.0855V27.0006ZM26.951 13.6818V22.0602H33.9139V13.6818H26.951Z" />
 <path fill-rule="evenodd" clip-rule="evenodd" d="M0.890625 27.0006V8.71246H18.2835V27.0006H0.890625ZM6.14893 13.6818V22.0602H13.1118V13.6818H6.14893Z" />
 </svg></h2>
-          <p class="muted" id="aboutVersion">v1.177-10</p>
+          <p class="muted" id="aboutVersion">v1.177-12</p>
           <a href="https://github.com/gnustella-lab/obscura-simple/releases/latest" target="_blank" rel="noopener" class="btn primary">Check for updates ↗</a>
           <p class="about-copyright muted">© Sovereign Engineering Inc. All rights reserved.</p>
           <div class="row center gap">

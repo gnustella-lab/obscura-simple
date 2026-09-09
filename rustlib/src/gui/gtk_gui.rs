@@ -310,15 +310,15 @@ fn build_primary_window(gtk_init: GtkInitToken, command_context: WebviewCmdConte
 
 fn update_sidebar_style(provider: &gtk::CssProvider, dark: bool) {
     let (background, foreground, border) = if dark {
-        ("#383838", "#dedede", "#535353")
+        ("#383838", "#d2d2d2", "#4c4c4c")
     } else {
         ("#eaeaea", "#303030", "#d0d0d0")
     };
     provider.load_from_data(&format!(
-        ".obscura-sidebar {{ background: {background}; color: {foreground}; border-right: 1px solid {border}; padding: 44px 8px 12px; font-size: 14px; }}
-         .obscura-sidebar row {{ padding: 7px 10px; margin-bottom: 2px; border-radius: 4px; }}
-         .obscura-sidebar row image {{ color: #fa7437; }}
-         .obscura-sidebar row:selected {{ background: #155bd0; color: #ffffff; }}
+        ".obscura-sidebar {{ background: {background}; color: {foreground}; border-right: 1px solid {border}; padding: 52px 10px 12px; font-size: 14px; }}
+         .obscura-sidebar row {{ min-height: 22px; padding: 5px 10px; margin-bottom: 0; border-radius: 4px; }}
+         .obscura-sidebar row image {{ color: #ff6b2b; }}
+         .obscura-sidebar row:selected {{ background: #0055d4; color: #ffffff; }}
          .obscura-sidebar row:selected image {{ color: #ffffff; }}"
     ));
 }

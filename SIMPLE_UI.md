@@ -29,8 +29,10 @@ In **Settings → Appearance → Connection background animation**, choose:
 
 The background has eight rows of 40 gapless squares, with increasing density toward
 the bottom. The reveal uses a 400 ms delay between rows and a 240 ms fade. It continues across
-fast connection updates and restarts when Connection becomes visible. Cancellation
-clears the fill. The preference is saved locally and does not change desktop settings.
+fast connection updates and is not restarted when switching tabs. Connection requests
+start the reveal; disconnection or cancellation clears the fill. Returning to Connection
+preserves the existing animation state. The preference is saved locally and does not
+change desktop settings.
 
 ## Visual verification
 
@@ -46,7 +48,7 @@ python3 rustlib/gen-gresource-xml.py simple-ui /tmp/webui.generated.xml
 glib-compile-resources --target=/tmp/obscura-gresources/webui.gresource /tmp/webui.generated.xml
 
 # 2. Build GUI
-OBSCURA_VERSION=v1.177-14 OBSCURA_GRESOURCES_DIR=/tmp/obscura-gresources cargo build --manifest-path rustlib/Cargo.toml --features gui --bin obscura-gui
+OBSCURA_VERSION=v1.177-15 OBSCURA_GRESOURCES_DIR=/tmp/obscura-gresources cargo build --manifest-path rustlib/Cargo.toml --features gui --bin obscura-gui
 
 # Or use helper
 ./simple-ui/rebuild.sh
@@ -75,9 +77,9 @@ A complete `.deb` with the simple UI, service auto-enabled and auto-started:
 # One command: builds gresources + release binaries + stages a proper Debian package
 ./contrib/bin/build-simple-deb.bash
 # or: ./simple-ui/build-deb.sh
-# outputs: ./obscura-simple_1.177-14_amd64.deb
+# outputs: ./obscura-simple_1.177-15_amd64.deb
 
-sudo apt install ./obscura-simple_1.177-14_amd64.deb
+sudo apt install ./obscura-simple_1.177-15_amd64.deb
 systemctl status obscura.service   # -> active (running)
 sudo obscura add-operator $USER    # add yourself to obscura group
 newgrp obscura                     # or logout/login
@@ -92,8 +94,8 @@ mkdir -p /tmp/obscura-gresources-simple
 glib-compile-resources --sourcedir=rustlib/src/gui --target=/tmp/obscura-gresources-simple/icons.gresource rustlib/src/gui/icons.gresource.xml
 python3 rustlib/gen-gresource-xml.py simple-ui /tmp/webui.generated.xml
 glib-compile-resources --target=/tmp/obscura-gresources-simple/webui.gresource /tmp/webui.generated.xml
-OBSCURA_VERSION=v1.177-14 OBSCURA_GRESOURCES_DIR=/tmp/obscura-gresources-simple cargo build --manifest-path rustlib/Cargo.toml --release --locked --bin obscura
-OBSCURA_VERSION=v1.177-14 OBSCURA_GRESOURCES_DIR=/tmp/obscura-gresources-simple cargo build --manifest-path rustlib/Cargo.toml --release --features gui --bin obscura-gui
+OBSCURA_VERSION=v1.177-15 OBSCURA_GRESOURCES_DIR=/tmp/obscura-gresources-simple cargo build --manifest-path rustlib/Cargo.toml --release --locked --bin obscura
+OBSCURA_VERSION=v1.177-15 OBSCURA_GRESOURCES_DIR=/tmp/obscura-gresources-simple cargo build --manifest-path rustlib/Cargo.toml --release --features gui --bin obscura-gui
 # then staging + dpkg-deb via the script above
 ```
 
@@ -121,7 +123,7 @@ Common causes fixed by the new packages: missing `obscura` group (`sysusers`), n
 
 ## Releases
 
-Current package revision: `1.177-14`, producing `obscura-simple_1.177-14_amd64.deb`. Release assets are not committed. Versioning: `tag.json` tracks upstream (`1.177`); the `-N` suffix is the fork packaging revision.
+Current package revision: `1.177-15`, producing `obscura-simple_1.177-15_amd64.deb`. Release assets are not committed. Versioning: `tag.json` tracks upstream (`1.177`); the `-N` suffix is the fork packaging revision.
 
 ## Differences from React UI
 

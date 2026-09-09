@@ -71,18 +71,18 @@ function setPixelMotion(mode){
   const reduced=window.matchMedia("(prefers-reduced-motion: reduce)").matches;
   $("#pixelMotionHint").textContent=mode==="system" && reduced?"Your system has animations disabled. Choose Animate bottom to top to enable this effect only in Obscura.":"Changes only the background pixels on Connection.";
   try{localStorage.setItem("obscura-pixel-motion",mode);}catch{}
-  syncPixelBackground(true);
+  syncPixelBackground();
 }
 function clearPixelRequest(){
   if(pixelRequest) clearTimeout(pixelRequest.timer);
   pixelRequest=null;
 }
-function syncPixelBackground(restart=false){
+function syncPixelBackground(){
   const status=osStatus?.serviceStatus?.healthy?.vpnStatus;
   const connected=!!status?.connected, connecting=!!status?.connecting;
   if(pixelRequest && (!status || (pixelRequest.connect ? connected || connecting : !connected && !connecting))) clearPixelRequest();
-  if(pixelRequest) renderPixelBackground(false,pixelRequest.connect,restart);
-  else renderPixelBackground(connected,connecting,restart);
+  if(pixelRequest) renderPixelBackground(false,pixelRequest.connect);
+  else renderPixelBackground(connected,connecting);
 }
 async function requestTunnel(command,args={}){
   clearPixelRequest();
@@ -111,12 +111,11 @@ function syncHashToView(name){
   }catch(e){}
 }
 function showViewLocal(name){
-  const previousView=document.body.dataset.view;
   $$(".view").forEach(v=>v.classList.add("hidden"));
   const el=$("#view-"+name); if(el) el.classList.remove("hidden");
   $$(".nav-btn").forEach(b=>{ const active=b.dataset.view===name; b.classList.toggle("active",active); if(active)b.setAttribute("aria-current","page");else b.removeAttribute("aria-current"); });
   document.body.dataset.view=name;
-  if(name==="connection" && previousView!=="connection") syncPixelBackground(true);
+  // Navigation only changes visibility; tunnel updates own the pixel animation.
   if(name!=="connection") $("#cityPicker").open=false;
   $("#pageTitle").textContent=({connection:"Connection",location:"Location",account:"Account",settings:"Settings",help:"Help",about:"About",developer:"Developer",login:"Welcome",splash:"Obscura VPN",degraded:"Service unavailable"})[name] || "Obscura VPN";
 }
@@ -181,8 +180,8 @@ function render(){
   }
   appStatus = latestAppStatus(serviceStatus);
   if(!appStatus){ $("#splashDetail").textContent="Loading status..."; showView("splash"); return; }
-  $("#appVersion").textContent = osStatus.srcVersion || "v1.177-14";
-  $("#aboutVersion").textContent = osStatus.srcVersion || "v1.177-14";
+  $("#appVersion").textContent = osStatus.srcVersion || "v1.177-15";
+  $("#aboutVersion").textContent = osStatus.srcVersion || "v1.177-15";
   if(!appStatus.accountId || appStatus.inNewAccountFlow){ renderLogin(); showView("login"); return; }
   // Backend is the source of truth so the native left sidebar and the web
   // top bar stay in sync (same as React `<Routes location={osStatus.navigationView}>`).
@@ -217,7 +216,7 @@ function renderLogin(){
     $("#loginTitle").textContent="Welcome to Obscura"; $("#loginSubtitle").textContent="Create an account or sign in with your existing number.";
     $("#loginCreateBox").classList.remove("hidden"); $("#loginGeneratedBox").classList.add("hidden");
   }
-  $("#aboutVersion").textContent = osStatus?.srcVersion || "v1.177-14";
+  $("#aboutVersion").textContent = osStatus?.srcVersion || "v1.177-15";
 }
 function renderConnection(){
   const vpnStatus=appStatus.vpnStatus; const isConnected=vpnConnected(vpnStatus); const isConnecting=!!vpnStatus.connecting;

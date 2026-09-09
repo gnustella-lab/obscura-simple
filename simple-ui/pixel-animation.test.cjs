@@ -6,11 +6,14 @@ const { test } = require('node:test');
 function setup(reduced = false) {
   const cells = [], requests = [], intervals = new Map(), timeouts = new Map();
   let nextId = 0, flushes = 0;
-  const grid = { appendChild: cell => cells.push(cell), get offsetWidth() { flushes++; return 800; } };
+  const grid = { classList: { remove() {} }, appendChild: cell => cells.push(cell), get offsetWidth() { flushes++; return 800; } };
   const context = vm.createContext({
     console: { log() {} },
     document: {
       addEventListener() {},
+      body: { dataset: { view: 'connection' } },
+      documentElement: { dataset: {} },
+      querySelectorAll: () => [],
       querySelector: () => grid,
       createElement() {
         const cell = { className: '', activations: 0, style: { setProperty(key,value) { this[key]=value; } } };
@@ -112,4 +115,42 @@ test('replaying a connection resets CSS animation state without JS frame timers'
   assert.equal(h.on().length, h.cells.filter(cell => !cell.classList.contains('empty')).length);
   h.context.renderPixelBackground(true,false,true);
   assert(h.on().every(cell=>cell.activations===2));
+});
+
+test('tab navigation never restarts or changes the connection pixels', () => {
+  for(const state of ['disconnected', 'connecting', 'connected']) {
+    const h = setup();
+    h.run(`osStatus.serviceStatus.healthy.vpnStatus={${state}:{}}; syncPixelBackground();`);
+    const before = h.cells.map(cell=>({ className: cell.className, activations: cell.activations }));
+    const flushes = h.flushes();
+    for(const view of ['location', 'account', 'settings', 'help', 'about']) {
+      h.context.showViewLocal(view);
+      h.context.showViewLocal('connection');
+      assert.deepEqual(h.cells.map(cell=>({ className: cell.className, activations: cell.activations })), before);
+      assert.equal(h.flushes(), flushes);
+    }
+  }
+});
+
+test('disconnect clears the fill and reconnect starts a new reveal after navigation', () => {
+  const h = setup();
+  h.context.requestTunnel('startTunnel');
+  h.run('osStatus.serviceStatus.healthy.vpnStatus={connected:{}}; syncPixelBackground();');
+  h.context.showViewLocal('settings');
+  h.context.requestTunnel('stopTunnel');
+  h.run('osStatus.serviceStatus.healthy.vpnStatus={disconnected:{}}; syncPixelBackground();');
+  h.context.showViewLocal('connection');
+  assert.equal(h.on().length, 0);
+  h.context.requestTunnel('startTunnel');
+  assert(h.on().length>0);
+  assert(h.on().every(cell=>cell.activations===2));
+});
+
+test('applying the current motion preference does not replay the connection', () => {
+  const h = setup();
+  h.run('osStatus.serviceStatus.healthy.vpnStatus={connected:{}}; syncPixelBackground();');
+  const flushes = h.flushes();
+  h.context.setPixelMotion('system');
+  assert.equal(h.flushes(), flushes);
+  assert(h.on().every(cell=>cell.activations===1));
 });

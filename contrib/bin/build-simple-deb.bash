@@ -40,7 +40,7 @@ else
 fi
 VERSION="${VERSION#v}"
 VERSION="${VERSION%%-*}"
-DEB_VERSION="${VERSION}-14"
+DEB_VERSION="${VERSION}-15"
 if [ -z "$OUT" ]; then
   OUT="$REPO_ROOT/obscura-simple_${DEB_VERSION}_${ARCH}.deb"
 fi
@@ -105,7 +105,7 @@ mkdir -p "$STAGING/usr/share/doc/obscura-simple"
 cat > "$STAGING/usr/share/doc/obscura-simple/changelog.Debian" <<EOF
 obscura-simple (${DEB_VERSION}) stable; urgency=low
 
-  * Release ${DEB_VERSION}: increase the animated connection background from five to eight rows.
+  * Release ${DEB_VERSION}: prevent tab navigation from restarting the connection pixel animation.
 
  -- Obscura Repository Signer <packages@obscura.com>  $(date -uR)
 EOF

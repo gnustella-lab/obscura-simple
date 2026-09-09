@@ -40,7 +40,8 @@ let locationListSignature="", pickerListSignature="";
 function pixelRand(seed){ let t=seed+0x6D2B79F5; return function(){ t=Math.imul(t^t>>>15,t|1); t^=t+Math.imul(t^t>>>7,t|61); return ((t^t>>>14)>>>0)/4294967296; }; }
 function buildPixelGrid(){
   const grid=$("#pixelGrid"); if(!grid || pixelCells.length) return;
-  const rows=5, columns=40, density=[0.20,0.35,0.60,0.80,0.95], random=pixelRand(1337);
+  const density=[0.20,0.30,0.40,0.50,0.65,0.75,0.85,0.95];
+  const rows=density.length, columns=40, random=pixelRand(1337);
   for(let row=0;row<rows;row++){
     for(let column=0;column<columns;column++){
       const pixel=document.createElement("div");
@@ -180,8 +181,8 @@ function render(){
   }
   appStatus = latestAppStatus(serviceStatus);
   if(!appStatus){ $("#splashDetail").textContent="Loading status..."; showView("splash"); return; }
-  $("#appVersion").textContent = osStatus.srcVersion || "v1.177-13";
-  $("#aboutVersion").textContent = osStatus.srcVersion || "v1.177-13";
+  $("#appVersion").textContent = osStatus.srcVersion || "v1.177-14";
+  $("#aboutVersion").textContent = osStatus.srcVersion || "v1.177-14";
   if(!appStatus.accountId || appStatus.inNewAccountFlow){ renderLogin(); showView("login"); return; }
   // Backend is the source of truth so the native left sidebar and the web
   // top bar stay in sync (same as React `<Routes location={osStatus.navigationView}>`).
@@ -216,7 +217,7 @@ function renderLogin(){
     $("#loginTitle").textContent="Welcome to Obscura"; $("#loginSubtitle").textContent="Create an account or sign in with your existing number.";
     $("#loginCreateBox").classList.remove("hidden"); $("#loginGeneratedBox").classList.add("hidden");
   }
-  $("#aboutVersion").textContent = osStatus?.srcVersion || "v1.177-13";
+  $("#aboutVersion").textContent = osStatus?.srcVersion || "v1.177-14";
 }
 function renderConnection(){
   const vpnStatus=appStatus.vpnStatus; const isConnected=vpnConnected(vpnStatus); const isConnecting=!!vpnStatus.connecting;

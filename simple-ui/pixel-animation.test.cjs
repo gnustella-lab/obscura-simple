@@ -53,9 +53,9 @@ test('click immediately starts CSS reveals with bottom rows scheduled before upp
   h.context.requestTunnel('startTunnel', { tunnelArgs: '{}' });
   assert.equal(h.requests.length, 1);
   assert.equal(h.on().length, h.cells.filter(cell => !cell.classList.contains('empty')).length);
-  const delays = Array.from({length: 5}, (_,row) => Number.parseFloat(h.cells[row*40].style['--pixel-delay']));
-  assert.equal(delays[4], 0);
-  for(let row=0;row<4;row++) assert(delays[row]>delays[row+1]);
+  const delays = Array.from({length: h.cells.length / 40}, (_,row) => Number.parseFloat(h.cells[row*40].style['--pixel-delay']));
+  assert.equal(delays.at(-1), 0);
+  for(let row=0;row<delays.length-1;row++) assert(delays[row]>delays[row+1]);
   assert.equal(h.intervals.size, 0);
   h.context.syncPixelBackground();
   assert(h.on().length>0); // A stale disconnected status must not undo the click.

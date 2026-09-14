@@ -1,6 +1,9 @@
-# Obscura Simple coexistence fixes
+# Historical Obscura Simple coexistence fixes
 
-Release validation: `1.177-16`, native Debian package and Flatpak GUI. The host Debian package was not installed during verification.
+This records the `1.177-16` validation that motivated the isolated package
+identities. It is historical: `1.177-17` is the current distribution and ships
+one `.deb` containing the CLI, service and native GUI; it does not produce or
+require Flatpak.
 
 ## Confirmed problems and corrections
 

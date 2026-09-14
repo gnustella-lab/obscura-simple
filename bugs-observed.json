@@ -1,5 +1,6 @@
 {
   "project": "obscura-simple",
+  "status": "historical-validation-for-v1.177-16; superseded-by-v1.177-17",
   "mode": "targeted fixes authorized by user",
   "baseline_commit": "57fd7da7c96e3871d7583288f57bb9350763d6c8",
   "version": "1.177-16",

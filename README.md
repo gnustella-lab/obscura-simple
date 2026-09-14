@@ -9,35 +9,36 @@ The GUI is a native Linux app built with **GTK 4 + libadwaita**, rendering its l
 
 This is an independent fork of [Sovereign-Engineering/obscuravpn-client](https://github.com/Sovereign-Engineering/obscuravpn-client), based on upstream `v1.177` with its commit history preserved. It is not the official Obscura client. This fork's UI, documentation, and release notes are maintained in English.
 
-## Current release
+## Current prepared build
 
-**[Obscura Simple 1.177-16](https://github.com/gnustella-lab/obscura-simple/releases/tag/v1.177-simple-16)** adds isolated Linux packaging and a Flatpak frontend.
+**Obscura Simple 1.177-17** is a prepared, unpublished build that restores one self-contained Debian package for the Linux client. No download release is published yet.
 
 | Artifact | Purpose |
 | --- | --- |
-| `obscura-simple_1.177-16_amd64.deb` | Host service, CLI and native GUI for Ubuntu 24.04-compatible systems |
-| `obscura-simple_1.177-16_x86_64.flatpak` | Sandboxed GUI, requires the matching Simple host service |
-| `SHA256SUMS` | SHA-256 checksums for both downloads |
+| `obscura-simple_1.177-17_amd64.deb` | CLI, host service and native GTK/WebKit GUI for Ubuntu 24.04-compatible systems |
+| `SHA256SUMS` | SHA-256 checksum for the download |
 
-- [Download the .deb](https://github.com/gnustella-lab/obscura-simple/releases/download/v1.177-simple-16/obscura-simple_1.177-16_amd64.deb)
-- [Download the Flatpak](https://github.com/gnustella-lab/obscura-simple/releases/download/v1.177-simple-16/obscura-simple_1.177-16_x86_64.flatpak)
-- [Download SHA256SUMS](https://github.com/gnustella-lab/obscura-simple/releases/download/v1.177-simple-16/SHA256SUMS)
-- [Release notes](release-notes/v1.177-simple-16.md)
+- [Release notes](release-notes/v1.177-simple-17.md)
 
-Release binaries are attached to GitHub releases, not committed to this repository. `tag.json` tracks upstream `1.177`; the Debian revision and `v1.177-simple-N` tags identify fork releases.
+If this build is published later, release binaries will be attached to GitHub releases rather than committed to this repository. `tag.json` tracks upstream `1.177`; the Debian revision and `v1.177-simple-N` tags identify fork releases.
 
 ## Install or upgrade
 
 The older `1.177-15` package uses upstream file paths and must not be
-installed alongside official Obscura packages. Release `1.177-16`
+installed alongside official Obscura packages. Build `1.177-17`
 introduces separate executables, IPC sockets, GTK application identity,
 autostart entry, operator group, service and persistent state.
+
+During an upgrade, the package replaces the binaries without automatically
+restarting `obscura-simple.service`; restart it deliberately after confirming
+the new binaries are ready. This preserves the active kill switch during the
+upgrade transaction.
 
 Build the isolated package with the command below, then install it explicitly:
 
 ```bash
 CARGO_BUILD_JOBS=2 ./contrib/bin/build-simple-deb.bash
-sudo apt install ./obscura-simple_1.177-16_amd64.deb
+sudo apt install ./obscura-simple_1.177-17_amd64.deb
 sudo obscura-simple add-operator "$USER"
 obscura-simple-gui
 ```
@@ -75,56 +76,6 @@ Legacy `1.177-15` package scripts and residual configuration predate isolation.
 Do not purge the legacy package while relying on the official service without
 reviewing its `postrm`: it can disable `obscura.service`. Do not delete shared
 `/var/lib/obscura` or `~/.config/obscura` data as part of migration.
-
-## Flatpak
-
-The Flatpak is **not a standalone VPN backend**. It runs the GUI inside the
-sandbox and communicates only with the matching `obscura-simple 1.177-16`
-host service. The official Alpha service is a different backend and cannot
-satisfy this dependency. Other distributions currently need a separately
-installed matching Simple host service; the provided host package targets
-Ubuntu 24.04-compatible systems.
-
-1. Download both packages and `SHA256SUMS`, then verify with `sha256sum -c SHA256SUMS`.
-2. Install the host `.deb` and add yourself to its operator group as described above.
-3. When deliberately switching away from another VPN backend, stop it yourself and start `obscura-simple.service`. Never enable both services at boot.
-4. Install the Flatpak and launch it:
-
-```bash
-flatpak install --user ./obscura-simple_1.177-16_x86_64.flatpak
-flatpak run io.github.gnustella_lab.obscura_simple
-```
-
-The bundle uses **GNOME Platform 50** from Flathub. The runtime is downloaded
-separately if needed; it is not included in the `.flatpak` file. Single-file
-bundles do not provide an automatic application update repository.
-
-Only the two Simple IPC sockets are exposed, read-only, alongside the display,
-network, tray and a filtered systemd D-Bus connection. There is no full-home,
-full-system-bus or arbitrary host-command permission. Start the host service
-before launching the GUI. **Close and reopen the Flatpak after a service
-restart**, since file-mounted Unix sockets can retain the old inode.
-
-Host setup, operator permissions, native autostart registration and complete
-host debug archives are not performed from the sandbox. The UI explains these
-limits rather than presenting nonworking controls. Use your desktop's Startup
-Applications settings with `flatpak run io.github.gnustella_lab.obscura_simple`
-for GUI autostart. For diagnostics, run `obscura-simple debug-bundle "description"`
-in a host terminal. Starting the GUI at login is separate from enabling the
-host VPN service at boot.
-
-### Build the Flatpak
-
-```bash
-CARGO_BUILD_JOBS=1 ./contrib/bin/build-simple-deb.bash
-./contrib/bin/build-simple-flatpak.bash
-```
-
-The Flatpak builder packages the **same source-built native GUI executable**
-from the `.deb` and executes an ABI/version probe inside GNOME Platform 50
-before exporting the bundle. It does not rebuild Rust inside a Flatpak SDK or
-bundle a host-executing launcher. `flatpak` and the GNOME Platform 50 runtime
-must already be installed. No `flatpak-builder` or extra compiler SDK is needed.
 
 ## Interface
 
@@ -172,16 +123,36 @@ The `1.177-10` UI was additionally checked across all six screens, light/dark th
 
 ## Build from source
 
-Run the following commands from the repository root. Native builds require Rust/Cargo, Python 3.12+, a C build toolchain, `pkg-config`, GLib resource tools, and development libraries for GTK 4, libadwaita, WebKitGTK 6, libsoup 3, and TPM2/TSS. Creating the package also requires `dpkg-deb`. The installed package's runtime dependencies are declared in [the build script](contrib/bin/build-simple-deb.bash).
+Run the following commands from the repository root. Native builds require Rust/Cargo, Python 3.12+, a C build toolchain, `pkg-config`, GLib resource tools, and development libraries for GTK 4, libadwaita, WebKitGTK 6, libsoup 3, and TPM2/TSS. Creating the Debian package also requires `dpkg-deb`. The installed package's runtime dependencies are declared in the build scripts.
 
 ### Build the `.deb`
 
 ```bash
 CARGO_BUILD_JOBS=1 ./contrib/bin/build-simple-deb.bash
-# Output: ./obscura-simple_1.177-16_amd64.deb on an amd64 host
+# Output: ./obscura-simple_1.177-17_amd64.deb on an amd64 host
 ```
 
-This generates the Simple UI resources, builds both release binaries with matching versions and the `simple-client` feature, and stages the isolated package and passive installation scripts. Nix and Docker are not required for this path. One build job is useful on machines with limited RAM.
+This generates the Simple UI resources, builds both release binaries with matching versions and the `simple-client` feature, and stages one package containing the CLI, service and native GUI plus passive installation scripts. Nix and Docker are not required for this path. One build job is useful on machines with limited RAM.
+
+### Build the Fedora 44 RPM
+
+Run the RPM builder inside Fedora 44 (with this repository mounted at the same
+path). It creates one `obscura-simple` RPM containing the CLI, isolated
+systemd service, and native GUI. The Fedora build uses `fedora-target/` and
+`rpm-build/`, never the Debian target or staging directories:
+
+```bash
+./contrib/bin/build-simple-rpm.bash
+./contrib/bin/test-simple-rpm.bash rpm-out/obscura-simple-1.177-17*.rpm
+```
+
+The constrained profile is explicit: one Cargo job, LTO disabled,
+`opt-level=0`, no debug info, and 256 codegen units. Installation is passive:
+the RPM preset disables `obscura-simple.service`, and upgrade scripts do not
+start, restart, or enable it. No SELinux policy is shipped because the service
+uses Fedora's existing systemd/SELinux boundaries and requires no new label
+transition. Validate installation/reinstallation only inside an isolated
+Fedora container; do not install this RPM on the host as a build test.
 
 ### Develop the GUI
 
@@ -195,7 +166,7 @@ The helper generates resources and builds the debug GUI. It expects the service 
 To build a matching debug CLI/service binary:
 
 ```bash
-OBSCURA_VERSION=v1.177-16 cargo build \
+OBSCURA_VERSION=v1.177-17 cargo build \
   --manifest-path rustlib/Cargo.toml --locked --features simple-client --bin obscura
 ```
 
@@ -209,7 +180,9 @@ node --test simple-ui/official-ui.test.cjs \
   simple-ui/pixel-animation.test.cjs simple-ui/kill-switch.test.cjs
 
 cargo test --manifest-path rustlib/Cargo.toml --release --locked --features simple-client,gui --lib --bin obscura
-python3 contrib/bin/test-simple-package.py obscura-simple_1.177-16_amd64.deb
+python3 contrib/bin/test-simple-package.py obscura-simple_1.177-17_amd64.deb
+# Isolated dpkg install/reinstall; pass a previous .deb as a second argument to test upgrade:
+./contrib/bin/test-simple-package-transaction.bash obscura-simple_1.177-17_amd64.deb
 
 # With the package installed:
 systemd-analyze verify /usr/lib/systemd/system/obscura-simple.service
@@ -247,7 +220,7 @@ For fork-specific bugs, use [this repository's issue tracker](https://github.com
 | `obscura-ui/` | Retained upstream React/Mantine interface and assets |
 | `docs/` | Upstream conventions, terminology, and architecture |
 
-Upstream-derived Nix/container workflows, split Debian/RPM/Arch packaging, and signing utilities remain in `contrib/` and `linux/`. Their presence does not imply that this fork publishes signed distribution repositories or has validated every upstream platform. The current published artifact is the amd64 `.deb` linked above. Use this fork's GitHub release assets rather than the upstream repository deployment instructions.
+Upstream-derived Nix/container workflows, split Debian/RPM/Arch packaging, and signing utilities remain in `contrib/` and `linux/`. Their presence does not imply that this fork publishes signed distribution repositories or has validated every upstream platform. This prepared build is not a published artifact. Use this fork's GitHub release assets only after a release is actually announced, rather than the upstream repository deployment instructions.
 
 ## License
 

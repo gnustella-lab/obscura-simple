@@ -13,26 +13,26 @@ test('Simple identifies its own app and never directs recovery to the official s
   assert.match(html, /gnustella-lab\/obscura-simple\/issues/);
   assert.match(html, /Only one VPN backend can run at a time/);
   assert.doesNotMatch(html + js, /\bobscura\.service\b/);
+  assert.doesNotMatch(html + js, /flatpak/i);
   assert.match(js, /Welcome to Obscura Simple/);
 });
 
-test('Flatpak blocks host-only actions before reaching the bridge', async () => {
+test('the native single-package GUI forwards host integration actions to its bridge', async () => {
   const calls = [];
   const sandbox = vm.createContext({
     document: { addEventListener() {} },
-    window: { obscuraFlatpak: true, webkit: { messageHandlers: { commandBridge: {
+    window: { webkit: { messageHandlers: { commandBridge: {
       postMessage(json) { calls.push(JSON.parse(json)); return '{}'; }
     } } } },
     console: { log() {} }
   });
   vm.runInContext(fs.readFileSync(`${__dirname}/app.js`, 'utf8'), sandbox);
   for (const command of ['restartService', 'linuxAddOperator', 'registerAsLoginItem', 'unregisterAsLoginItem', 'debugBundle']) {
-    await assert.rejects(sandbox.invoke(command), /configured on the host/);
+    await sandbox.invoke(command);
   }
-  assert.equal(calls.length, 0);
-  await sandbox.invoke('getOsStatus');
-  assert.equal(calls.length, 1);
-  assert.deepEqual(calls[0], { getOsStatus: {} });
+  assert.deepEqual(calls.map(call => Object.keys(call)[0]), [
+    'restartService', 'linuxAddOperator', 'registerAsLoginItem', 'unregisterAsLoginItem', 'debugBundle'
+  ]);
 });
 
 test('disconnected traffic is classified using acknowledged protection', () => {

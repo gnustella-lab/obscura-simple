@@ -1,0 +1,107 @@
+name: Obscura Simple Debian package
+
+on:
+  workflow_dispatch:
+  pull_request:
+  push:
+    branches:
+      - main
+    tags:
+      - 'v1.177-simple-*'
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.ref_name != 'main' }}
+
+jobs:
+  build:
+    name: Build and verify one .deb
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Check out
+        uses: actions/checkout@v6
+
+      - name: Install native build dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install --yes \
+            apparmor \
+            build-essential \
+            desktop-file-utils \
+            dpkg-dev \
+            libadwaita-1-dev \
+            libglib2.0-dev \
+            libgtk-4-dev \
+            libtss2-dev \
+            libwebkitgtk-6.0-dev \
+            libsoup-3.0-dev \
+            nodejs \
+            pkg-config \
+            python3
+
+      - name: Install the pinned Rust toolchain
+        working-directory: rustlib
+        run: rustup toolchain install
+
+      - name: Build the single Debian package
+        env:
+          CARGO_BUILD_JOBS: 1
+          RUSTUP_TOOLCHAIN: 1.89.0
+        run: ./contrib/bin/build-simple-deb.bash
+
+      - name: Run UI tests
+        run: |
+          node --check simple-ui/app.js
+          node --test \
+            simple-ui/official-ui.test.cjs \
+            simple-ui/pixel-animation.test.cjs \
+            simple-ui/kill-switch.test.cjs
+
+      - name: Run Rust and package checks
+        env:
+          RUSTUP_TOOLCHAIN: 1.89.0
+        run: |
+          cargo test --manifest-path rustlib/Cargo.toml --release --locked \
+            --features simple-client,gui --lib --bin obscura
+          python3 contrib/bin/test-simple-package.py obscura-simple_1.177-17_amd64.deb
+          old_dir="$(mktemp -d)"
+          trap 'rm -rf "$old_dir"' EXIT
+          dpkg-deb --extract obscura-simple_1.177-17_amd64.deb "$old_dir"
+          dpkg-deb --control obscura-simple_1.177-17_amd64.deb "$old_dir/DEBIAN"
+          sed -i 's/^Version: .*/Version: 1.177-16/' "$old_dir/DEBIAN/control"
+          dpkg-deb --build --root-owner-group "$old_dir" obscura-simple_1.177-16_amd64.deb
+          ./contrib/bin/test-simple-package-transaction.bash obscura-simple_1.177-17_amd64.deb obscura-simple_1.177-16_amd64.deb
+          dpkg-deb --info obscura-simple_1.177-17_amd64.deb
+          dpkg-deb --contents obscura-simple_1.177-17_amd64.deb | \
+            grep -E '/usr/bin/obscura-simple(-gui)?$'
+
+      - name: Create release checksums
+        run: sha256sum obscura-simple_1.177-17_amd64.deb > SHA256SUMS
+
+      - name: Upload the only release artifact
+        uses: actions/upload-artifact@v7
+        with:
+          name: obscura-simple-deb
+          path: |
+            obscura-simple_1.177-17_amd64.deb
+            SHA256SUMS
+          if-no-files-found: error
+          retention-days: 30
+
+  attach:
+    name: Attach .deb to an existing GitHub release
+    if: ${{ github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v') }}
+    needs: build
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: write
+    steps:
+      - name: Download package artifact
+        uses: actions/download-artifact@v8
+        with:
+          name: obscura-simple-deb
+
+      - name: Upload only the Debian package and checksum
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh release upload "$GITHUB_REF_NAME" obscura-simple_1.177-17_amd64.deb SHA256SUMS --clobber

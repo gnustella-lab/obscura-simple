@@ -1,8 +1,5 @@
 // Simple Obscura VPN GUI - vanilla JS (English)
 async function invoke(cmd, args = {}) {
-  if (window.obscuraFlatpak && ['restartService', 'linuxAddOperator', 'registerAsLoginItem', 'unregisterAsLoginItem', 'debugBundle'].includes(cmd)) {
-    throw new Error('This operation must be configured on the host. See the Flatpak setup instructions.');
-  }
   const json = JSON.stringify({ [cmd]: args });
   if (cmd !== 'jsonFfiCmd') console.log('[invoke]', cmd, args);
   const res = await window.webkit.messageHandlers.commandBridge.postMessage(json);
@@ -183,8 +180,8 @@ function render(){
   }
   appStatus = latestAppStatus(serviceStatus);
   if(!appStatus){ $("#splashDetail").textContent="Loading status..."; showView("splash"); return; }
-  $("#appVersion").textContent = osStatus.srcVersion || "v1.177-16";
-  $("#aboutVersion").textContent = osStatus.srcVersion || "v1.177-16";
+  $("#appVersion").textContent = osStatus.srcVersion || "v1.177-17";
+  $("#aboutVersion").textContent = osStatus.srcVersion || "v1.177-17";
   if(!appStatus.accountId || appStatus.inNewAccountFlow){ renderLogin(); showView("login"); return; }
   // Backend is the source of truth so the native left sidebar and the web
   // top bar stay in sync (same as React `<Routes location={osStatus.navigationView}>`).
@@ -219,7 +216,7 @@ function renderLogin(){
     $("#loginTitle").textContent="Welcome to Obscura Simple"; $("#loginSubtitle").textContent="Create an account or sign in with your existing number.";
     $("#loginCreateBox").classList.remove("hidden"); $("#loginGeneratedBox").classList.add("hidden");
   }
-  $("#aboutVersion").textContent = osStatus?.srcVersion || "v1.177-16";
+  $("#aboutVersion").textContent = osStatus?.srcVersion || "v1.177-17";
 }
 function renderConnection(){
   const vpnStatus=appStatus.vpnStatus; const isConnected=vpnConnected(vpnStatus); const isConnecting=!!vpnStatus.connecting;
@@ -487,16 +484,7 @@ function renderSettings(){
   const mode = appStatus.useSystemDns ? "system" : "obscura";
   $$('input[name="dnsMode"]').forEach(r=> r.checked = r.value===mode);
 }
-function configureFlatpakUI() {
-  if (!window.obscuraFlatpak) return;
-  $$('.flatpak-only').forEach(element => element.classList.remove('hidden'));
-  for (const id of ['#btnRestartService', '#btnAddOperator', '#btnDebugBundle']) $(id).classList.add('hidden');
-  $('#toggleLoginItem').disabled = true;
-  $('#toggleLoginItem').closest('label').classList.add('hidden');
-  $('#degradedHint').classList.add('hidden');
-}
 document.addEventListener("DOMContentLoaded", ()=>{
-  configureFlatpakUI();
   buildPixelGrid();
   let motion="system";try{motion=localStorage.getItem("obscura-pixel-motion") || "system";}catch{}
   setPixelMotion(motion);

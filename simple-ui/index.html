@@ -51,12 +51,6 @@
         <h3>Service unavailable</h3>
         <p id="degradedMsg">Obscura Simple service is not running.</p>
         <p class="muted small">Obscura Simple uses a separate service and account settings. Only one VPN backend can run at a time. Do not restart this service while the official Obscura service is in use.</p>
-        <div class="flatpak-only hidden">
-          <p>This Flatpak contains the interface only. Install the matching <code>obscura-simple 1.177-16</code> host package first, then grant access in a host terminal:</p>
-          <p><code>sudo obscura-simple add-operator "$USER"</code></p>
-          <p>After deliberately stopping any other VPN backend, start <code>obscura-simple.service</code> on the host. Close and reopen this Flatpak after starting or restarting the service.</p>
-          <p><a href="https://github.com/gnustella-lab/obscura-simple#flatpak" target="_blank" rel="noopener">Flatpak setup instructions</a></p>
-        </div>
         <div class="row gap">
           <button id="btnRestartService" class="btn primary">Restart service</button>
           <button id="btnAddOperator" class="btn">Add permission</button>
@@ -175,7 +169,6 @@
         <div class="card">
           <h3>General</h3>
           <label class="switch"><input type="checkbox" id="toggleLoginItem" /> <span>Launch Obscura Simple at login</span></label>
-          <p class="flatpak-only hidden small muted">Configure Flatpak launch at login using your desktop startup settings. The native autostart switch is not available inside this sandbox.</p>
           <label class="switch"><input type="checkbox" id="toggleAutoConnect" /> <span>Automatically connect at launch</span></label>
           <p class="setting-description muted">Connect to the last chosen location when Obscura Simple starts. If you last used Quick Connect, Obscura will choose a location automatically.</p>
         </div>
@@ -234,7 +227,6 @@
             <textarea id="feedbackInput" rows="3" placeholder="What happened?"></textarea>
           </div>
           </details><button id="btnDebugBundle" class="btn primary">Create Debugging Archive</button>
-          <p class="flatpak-only hidden small muted">Create a complete debugging archive from a host terminal using <code>obscura-simple debug-bundle "description"</code>. Host service logs are not exposed to this sandbox.</p>
           <p class="small muted" id="debugPath"></p>
           <button id="btnRevealDebug" class="btn small hidden">Show file</button>
           <h3 class="social-heading">Socials</h3><p class="muted">Follow the Obscura VPN service via</p>
@@ -258,7 +250,7 @@
 <path fill-rule="evenodd" clip-rule="evenodd" d="M0.890625 27.0006V8.71246H18.2835V27.0006H0.890625ZM6.14893 13.6818V22.0602H13.1118V13.6818H6.14893Z" />
 </svg></h2>
           <p>Obscura Simple, an unofficial community client for Obscura VPN. Independently maintained, not the official Obscura app.</p>
-          <p class="muted" id="aboutVersion">v1.177-16</p>
+          <p class="muted" id="aboutVersion">v1.177-17</p>
           <a href="https://github.com/gnustella-lab/obscura-simple/releases/latest" target="_blank" rel="noopener" class="btn primary">Check for updates ↗</a>
           <p class="about-copyright muted">© Sovereign Engineering Inc. All rights reserved.</p>
           <div class="row center gap">

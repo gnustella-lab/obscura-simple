@@ -1,10 +1,11 @@
 #!/usr/bin/env python3
-"""Read-only package coexistence checks. Pass a real built .deb as argument."""
+"""Read-only checks for the single Simple .deb. Pass a real built .deb."""
 import pathlib
 import subprocess
 import sys
 import tarfile
 import io
+import shutil
 
 package = pathlib.Path(sys.argv[1]).resolve()
 
@@ -13,6 +14,12 @@ def run(*args):
 
 payload = tarfile.open(fileobj=io.BytesIO(run('dpkg-deb', '--fsys-tarfile', str(package))))
 files = {('/' + m.name.removeprefix('./')): m for m in payload if m.isfile() or m.issym()}
+assert run('dpkg-deb', '-f', str(package), 'Package').decode().strip() == 'obscura-simple'
+assert run('dpkg-deb', '-f', str(package), 'Version').decode().strip() == '1.177-17'
+assert run('dpkg-deb', '-f', str(package), 'Architecture').decode().strip() in {'amd64', 'arm64'}
+depends = run('dpkg-deb', '-f', str(package), 'Depends').decode()
+for dependency in ('policykit-1', 'libgtk-4-1', 'libadwaita-1-0', 'libwebkitgtk-6.0-4', 'libsoup-3.0-0', 'libtss2-tctildr0t64'):
+    assert dependency in depends, dependency
 required = {
     '/usr/bin/obscura-simple', '/usr/bin/obscura-simple-gui',
     '/usr/lib/systemd/system/obscura-simple.service',
@@ -22,8 +29,14 @@ required = {
 }
 assert required <= files.keys(), required - files.keys()
 assert all(m.uid == 0 and m.gid == 0 for m in files.values())
-# Query ownership only, never install or modify either package.
+# Query ownership only, never install or modify either package. A clean CI
+# runner may not have the upstream packages installed, so absence is fine.
 for official in ('obscura', 'obscura-cli', 'obscura-gui', 'obscura-repository'):
+    if shutil.which('dpkg-query') is None:
+        break
+    status = subprocess.run(('dpkg-query', '-W', '-f=${db:Status-Abbrev}', official), capture_output=True, text=True)
+    if status.returncode != 0 or not status.stdout.startswith('ii '):
+        continue
     installed = set(run('dpkg-query', '-L', official).decode().splitlines())
     assert not files.keys() & installed, (official, files.keys() & installed)
 
@@ -45,6 +58,7 @@ desktop = text('/usr/share/applications/io.github.gnustella_lab.obscura_simple.d
 assert 'Exec=obscura-simple-gui' in desktop
 assert 'x-scheme-handler/obscuravpn' not in desktop
 assert 'Name=Obscura Simple (Unofficial)' in desktop
+assert not any(path.endswith('.flatpak') or path.startswith('/app/') for path in files)
 for binary in ('/usr/bin/obscura-simple', '/usr/bin/obscura-simple-gui'):
     assert b'/run/obscura-simple.sock' in read_member(payload, files[binary])
 controls = tarfile.open(fileobj=io.BytesIO(run('dpkg-deb', '--ctrl-tarfile', str(package))))
@@ -58,4 +72,4 @@ for name in ('postinst', 'prerm', 'postrm'):
         assert 'systemctl disable obscura.service' not in line
         if name == 'postinst':
             assert not any('systemctl ' + action in line for action in ('start ', 'restart ', 'enable ', 'preset '))
-print('PASS: real package has isolated files, service state, desktop identity, IPC and safe installation scripts')
+print('PASS: single .deb has CLI+GUI, isolated files, service state, desktop identity, IPC and safe installation scripts')

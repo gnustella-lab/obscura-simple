@@ -17,7 +17,7 @@ done
 case "$ARCH" in amd64|arm64) ;; *) printf 'Unsupported architecture\n' >&2; exit 1 ;; esac
 [ "$ARCH" = "$(dpkg --print-architecture)" ] || { printf 'Cross compilation is not supported by this builder\n' >&2; exit 1; }
 VERSION="$(python3 -c 'import json; print(json.load(open("tag.json"))["version"])')"
-DEB_VERSION="${VERSION}-16"
+DEB_VERSION="${VERSION}-17"
 OUT="${OUT:-$REPO_ROOT/obscura-simple_${DEB_VERSION}_${ARCH}.deb}"
 WORK="$(mktemp -d -t obscura-simple-build.XXXXXXXX)"
 trap 'rm -rf "$WORK"' EXIT
@@ -28,7 +28,25 @@ glib-compile-resources --sourcedir="$REPO_ROOT/rustlib/src/gui" --target="$OBSCU
 python3 rustlib/gen-gresource-xml.py "$REPO_ROOT/simple-ui" "$WORK/webui.xml"
 glib-compile-resources --target="$OBSCURA_GRESOURCES_DIR/webui.gresource" "$WORK/webui.xml"
 if [ -z "$NO_BUILD" ]; then
-  cargo build --manifest-path rustlib/Cargo.toml --release --locked --features simple-client,gui --bin obscura --bin obscura-gui
+  # Keep the low-memory knobs in the environment so the repository's production
+  # profile is unchanged. The explicit print makes the values auditable in CI.
+  : "${CARGO_BUILD_JOBS:=1}"
+  : "${CARGO_PROFILE_RELEASE_LTO:=false}"
+  : "${CARGO_PROFILE_RELEASE_OPT_LEVEL:=0}"
+  : "${CARGO_PROFILE_RELEASE_DEBUG:=0}"
+  : "${CARGO_PROFILE_RELEASE_CODEGEN_UNITS:=256}"
+  export CARGO_BUILD_JOBS CARGO_PROFILE_RELEASE_LTO CARGO_PROFILE_RELEASE_OPT_LEVEL
+  export CARGO_PROFILE_RELEASE_DEBUG CARGO_PROFILE_RELEASE_CODEGEN_UNITS
+  printf 'Cargo environment: CARGO_BUILD_JOBS=%s CARGO_PROFILE_RELEASE_LTO=%s CARGO_PROFILE_RELEASE_OPT_LEVEL=%s CARGO_PROFILE_RELEASE_DEBUG=%s CARGO_PROFILE_RELEASE_CODEGEN_UNITS=%s\n' \
+    "$CARGO_BUILD_JOBS" "$CARGO_PROFILE_RELEASE_LTO" "$CARGO_PROFILE_RELEASE_OPT_LEVEL" \
+    "$CARGO_PROFILE_RELEASE_DEBUG" "$CARGO_PROFILE_RELEASE_CODEGEN_UNITS"
+  env CARGO_BUILD_JOBS="$CARGO_BUILD_JOBS" \
+    CARGO_PROFILE_RELEASE_LTO="$CARGO_PROFILE_RELEASE_LTO" \
+    CARGO_PROFILE_RELEASE_OPT_LEVEL="$CARGO_PROFILE_RELEASE_OPT_LEVEL" \
+    CARGO_PROFILE_RELEASE_DEBUG="$CARGO_PROFILE_RELEASE_DEBUG" \
+    CARGO_PROFILE_RELEASE_CODEGEN_UNITS="$CARGO_PROFILE_RELEASE_CODEGEN_UNITS" \
+    cargo build --manifest-path rustlib/Cargo.toml --release --locked \
+      --features simple-client,gui --bin obscura --bin obscura-gui
 fi
 TARGET="${CARGO_TARGET_DIR:-$REPO_ROOT/rustlib/target}/release"
 # Refuse old or upstream binaries even with --no-build.
@@ -97,7 +115,7 @@ Priority: optional
 Architecture: ${ARCH}
 Maintainer: Obscura Simple contributors <noreply@github.com>
 Homepage: https://github.com/gnustella-lab/obscura-simple
-Depends: libc6 (>= 2.39), passwd, util-linux-extra, libtss2-esys-3.0.2-0t64, libtss2-mu-4.0.1-0t64, libtss2-sys1t64, libtss2-tctildr0t64, libtss2-tcti-device0t64, desktop-file-utils, libgtk-4-1, libadwaita-1-0, libwebkitgtk-6.0-4, libsoup-3.0-0
+Depends: libc6 (>= 2.39), passwd, util-linux-extra, policykit-1, libtss2-esys-3.0.2-0t64, libtss2-mu-4.0.1-0t64, libtss2-sys1t64, libtss2-tctildr0t64, libtss2-tcti-device0t64, desktop-file-utils, libgtk-4-1, libadwaita-1-0, libwebkitgtk-6.0-4, libsoup-3.0-0
 Description: Unofficial community client for Obscura VPN
  Separate CLI, GUI, permissions and service state from the official client.
  The service is not automatically enabled or started during installation.
@@ -124,8 +142,10 @@ EOF
 cat > "$STAGING/DEBIAN/prerm" <<'EOF'
 #!/bin/sh
 set -e
-if [ "$1" = remove ] && command -v systemctl >/dev/null 2>&1; then
-    systemctl stop obscura-simple.service
+if [ "$1" = remove ]; then
+    if command -v systemctl >/dev/null 2>&1; then
+        systemctl stop obscura-simple.service
+    fi
 fi
 EOF
 cat > "$STAGING/DEBIAN/postrm" <<'EOF'
@@ -143,3 +163,4 @@ chmod 755 "$STAGING/DEBIAN/postinst" "$STAGING/DEBIAN/prerm" "$STAGING/DEBIAN/po
 printf 'interest desktop-database\ninterest hicolor-icon-theme\n' > "$STAGING/DEBIAN/triggers"
 dpkg-deb --root-owner-group --build "$STAGING" "$OUT"
 printf 'Built %s\n' "$OUT"
+printf '%s\n' 'This single package contains the Simple CLI, privileged service and native GTK/WebKit GUI; no Flatpak is required.'

@@ -40,11 +40,7 @@ console.error = log.bind(null, "error:");
 pub(crate) fn build_webview(gtk_init: GtkInitToken, command_context: WebviewCmdContext) -> WebView {
     let user_content_manager = webkit6::UserContentManager::new();
 
-    let error_capture = format!(
-        "window.obscuraFlatpak = {};\n{JS_ERROR_CAPTURE}",
-        std::path::Path::new("/.flatpak-info").exists()
-    );
-    for capture_script in [error_capture.as_str(), JS_LOG_CAPTURE] {
+    for capture_script in [JS_ERROR_CAPTURE, JS_LOG_CAPTURE] {
         let script = UserScript::new(
             capture_script,
             UserContentInjectedFrames::AllFrames,
